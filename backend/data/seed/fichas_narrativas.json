@@ -1,0 +1,92 @@
+[
+  {
+    "titulo": "Friendship is Magic (Parte 1)",
+    "codigo": "1x01",
+    "temas": ["amistad", "valentía", "confianza"],
+    "sinopsis": "Twilight Sparkle, unicornio y asistente de la princesa Celestia en Canterlot, recibe el encargo de celebrar la llegada de la princesa Luna a Ponyville para el solsticio de verano. Al llegar descubre que la celebración es improvisada y que los habitantes del pueblo no colaboran entre sí. Twilight, obsesionada con la magia y el orden, debe buscar los Elementos de Harmony para impedir que regrese Nightmare Moon.",
+    "conflicto": "Nightmare Moon escapa de la Luna y Twilight debe encontrar los Elementos de Harmony antes de que caiga la noche eterna sobre Equestria. Twilight confía únicamente en su magia y desconfía de las habilidades de quienes la rodean.",
+    "resolucion": "Applejack, Rarity, Fluttershy, Pinkie Pie y Rainbow Dash acompañan a Twilight a la Torre de las Elementos. Al comprobar que los Elementos no responden a su magia, Twilight declara que sus amigas son su verdadera fortaleza; la unión de las seis activa los Elementos y convierte a Nightmare Moon de vuelta en la princesa Luna.",
+    "leccion": "La amistad y la colaboración logran lo que la fuerza y la magia por sí solas no consiguen; Twilight aprende que necesita de las demás."
+  },
+  {
+    "titulo": "Friendship is Magic (Parte 2)",
+    "codigo": "1x02",
+    "temas": ["amistad", "valentía", "liderazgo"],
+    "sinopsis": "Después de derrotar a Nightmare Moon, Twilight Sparkle descubre que la princesa Luna ha vuelto a su forma original y regresado a la Luna. Celestia reconoce el trabajo de las seis amigas y Twilight decide quedarse en Ponyville.",
+    "conflicto": "El regreso de la Luna amenaza con dejar Equestria en oscuridad permanente si no se restablece el equilibrio.",
+    "resolucion": "Los Elementos de Harmony devuelven a Luna a su forma de princesa, que acepta su papel junto a su hermana. Twilight elige permanecer en Ponyville con sus nuevas amigas.",
+    "leccion": "El perdón y la reconciliación son posibles; una persona no está definida por su peor momento."
+  },
+  {
+    "titulo": "The Cutie Mark Chronicles",
+    "codigo": "1x23",
+    "temas": ["amistad", "trabajo en equipo", "valentía"],
+    "sinopsis": "Ante la visita de los Wonderbolts a Ponyville, Rainbow Dash cuenta cómo obtuvo su cortejo, y el relato desencadena que cada una de las seis amigas recuerde el suyo. Pinkie Pie descubre que Twilight estaba presente en su momento de cortejo cuando era una potra.",
+    "conflicto": "Rainbow Dash teme que su momento mágico no sea tan especial como cree, hasta que descubre que su vuelo sónico creó el arco iris que marcó el cortejo de Twilight.",
+    "resolucion": "Las seis comparan sus historias y descubren que sus caminos se cruzaron antes de conocerse.",
+    "leccion": "Los caminos de las personas pueden estar conectados antes de que lo noten; la amistad se construye sobre momentos compartidos."
+  },
+  {
+    "titulo": "Winter Wrap Up",
+    "codigo": "1x13",
+    "temas": ["trabajo en equipo", "responsabilidad", "liderazgo"],
+    "sinopsis": "Ponyville se prepara para el invierno: los habitantes dejan de trabajar con magia y realizan tareas manuales hasta el amanecer invernal. Twilight Sparkle, que nunca ha participado, quiere colaborar pero no sabe hacer ninguna tarea.",
+    "conflicto": "Twilight intenta ayudar sin pedir indicaciones, lo que provoca problemas en las tareas de Rarity, Fluttershy y Rainbow Dash. Al mismo tiempo, Ponyville no logra que la nieve llegue a tiempo.",
+    "resolucion": "Twilight deja de intentar hacer el trabajo de los demás y organiza a todos los equipos para realizar una tarea coordinada; su capacidad de organización permite que la nieve llegue antes del amanecer invernal.",
+    "leccion": "Cada persona aporta una habilidad distinta; el trabajo en equipo funciona cuando cada quien asume su papel y se pide ayuda cuando hace falta."
+  },
+  {
+    "titulo": "Bridle Gossip",
+    "codigo": "1x09",
+    "temas": ["confianza", "amistad", "honestidad"],
+    "sinopsis": "Una poni zebra llamada Zecora llega a Ponyville y los habitantes, por su apariencia y sus costumbres, la tratan con desconfianza y difunden rumores sobre ella. Cuando varios animales del pueblo aparecen cubiertos por un manto morado, el rumor acusa a Zecora.",
+    "conflicto": "El miedo y los rumores llevan a las protagonistas a perseguir a Zecora sin comprobar los hechos. Twilight descubre que el manto morado es causado por un polvo de un mineral, no por magia oscura.",
+    "resolucion": "Zecora explica que tiene un antídoto elaborado con hierbas que ya había ofrecido a las ponis. Las protagonistas se disculpan y la invitan a participar en la vida del pueblo.",
+    "leccion": "Los rumores y la apariencia no son pruebas; desconfiar de alguien por cómo es distinto es una forma de injusticia."
+  },
+  {
+    "titulo": "Lesson Zero",
+    "codigo": "2x03",
+    "temas": ["amistad", "responsabilidad", "honestidad"],
+    "sinopsis": "Twilight Sparkle llega tarde a su lección semanal de amistad y no tiene ninguna lección que compartir. Convencida de que necesita encontrar un problema que resolver, comienza a provocar situaciones de conflicto en Ponyville de forma cada vez más descontrolada.",
+    "conflicto": "La obsesión de Twilight por ser una estudiante perfecta la lleva a separar a dos amigas por una nimiedad y a causar caos en el pueblo. Sus amigas le hacen ver que su comportamiento es el verdadero problema.",
+    "resolucion": "Twilight admite su error ante la princesa Celestia. Celestia le devuelve su tarea semanal y le recuerda que no necesita causar problemas para demostrar su valía.",
+    "leccion": "La amistad también consiste en avisar de un problema, no en fabricarlo; la perfección no es una obligación."
+  },
+  {
+    "titulo": "Luna Eclipsed",
+    "codigo": "2x04",
+    "temas": ["valentía", "confianza", "amistad"],
+    "sinopsis": "La princesa Luna visita Ponyville durante la Luna Nueva y descubre que los habitantes se disfrazan de ella para ahuyentarla, y que la pequeña Pipsqueak la toma por una impersonadora de sí misma.",
+    "conflicto": "Luna intenta relacionarse con los ciudadanos, pero su tono solemne y su fama como Nightmare Moon la aíslan. Pipsqueak la desafía a demostrar quién es.",
+    "resolucion": "Luna demuestra que conoce el castillo antiguo desde dentro, algo que solo la Luna real sabría, y ayuda a los niños con sus disfraces. Al final del día los ciudadanos la acompañan a su descenso.",
+    "leccion": "Superar el miedo ajeno exige paciencia y hechos concretos; integrarse requiere esfuerzo por ambas partes."
+  },
+  {
+    "titulo": "The Last Roundup",
+    "codigo": "2x21",
+    "temas": ["honestidad", "amistad", "reconciliación"],
+    "sinopsis": "Applejack no regresa a Ponyville como estaba previsto tras el concurso de la vaquera campeona de Dodge Junction. Cuando sus amigas van a buscarla, descubren que perdió la competición, rompió la copa y no ha podido pagar el arreglo.",
+    "conflicto": "Applejack oculta la verdad por vergüenza y se queda trabajando en Dodge Junction en lugar de enfrentar a sus amigas.",
+    "resolucion": "Sus amigas la encuentran y la ayudan a reunir el dinero. Applejack confiesa el error y regresa con ellas.",
+    "leccion": "Aunque ocultar un problema pueda parecer más fácil, la verdad y el perdón de las amigas son lo que permite recomponer la relación."
+  },
+  {
+    "titulo": "Hurricane Fluttershy",
+    "codigo": "2x22",
+    "temas": ["valentía", "trabajo en equipo", "confianza"],
+    "sinopsis": "Ponyville necesita elevar agua desde el lago de Cloudsdale para evitar la sequía. Rainbow Dash organiza un entrenamiento de vuelo acuático, pero Fluttershy se inscribe pese a su miedo a volar alto y a recordar una humillación infantil.",
+    "conflicto": "Fluttershy falla en su primer intento y decide retirarse para no arruinar el esfuerzo del equipo. Rainbow Dash le explica que su sola presencia motiva a las demás ponis.",
+    "resolucion": "Fluttershy vuelve al entrenamiento, supera el miedo y consigue elevar el agua con el equipo.",
+    "leccion": "El valor no es la ausencia de miedo; una persona puede contribuir al equipo aunque crea que estropea las cosas."
+  },
+  {
+    "titulo": "A Canterlot Wedding (Partes 1 y 2)",
+    "codigo": "2x25-2x26",
+    "temas": ["confianza", "valentía", "amistad"],
+    "sinopsis": "La princesa Cadance regresa a Canterlot para casarse con Shining Armor. Twilight sospecha de inmediato de la Cadance que llega, porque su comportamiento es frío y desagradable con sus amigas, mientras las demás confían en la apariencia de la celebración.",
+    "conflicto": "Twilight investiga por su cuenta y descubre que la Cadance visible es la reina Chrysalis, líder de los changelings, que se alimenta de amor y ha sustituido a la verdadera Cadance para tomar el control de Canterlot.",
+    "resolucion": "Twilight convence a sus amigas a tiempo: derrotan a Chrysalis con la magia del amor y rescatan a Cadance y a Shining Armor.",
+    "leccion": "Confiar no significa dejar de observar; avisar de algo raro incluso cuando todos parecen conformes puede salvar la situación."
+  }
+]

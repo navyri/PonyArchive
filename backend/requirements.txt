@@ -1,0 +1,40 @@
+# PonyArchive — Backend
+# Instalado y verificado el 2026-10-17 en Python 3.14.2 (ver docs/decisiones.md)
+
+# --- Agente (obligatorio: LangChain + LangGraph) ---
+langchain==1.4.6
+langchain-core==1.6.12
+langchain-community==0.4.2
+langgraph==1.2.16
+langchain-ollama
+
+# --- Modelo local ---
+ollama            # cliente HTTP directo de Ollama (respaldo)
+
+# --- Embeddings locales ---
+sentence-transformers==6.1.0
+torch
+transformers
+
+# --- Base de datos vectorial ---
+chromadb==1.5.9
+
+# --- API y backend ---
+fastapi==0.141.1
+uvicorn[standard]==0.54.0
+python-multipart
+sqlalchemy
+aiosqlite
+
+# --- Procesamiento de documentos ---
+pypdf
+python-docx
+pandas            # CSV
+
+# --- Seguridad y configuración ---
+pyjwt
+bcrypt
+python-dotenv
+pydantic-settings
+email-validator          # validación de correo (EmailStr)
+httpx
