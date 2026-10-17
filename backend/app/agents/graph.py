@@ -40,7 +40,10 @@ SUGGESTION = "Puedes subir documentos relacionados con ese tema y lo tendré en 
 BONUS_PROPIO = 0.05
 
 INTENT_PROMPT = """Eres el clasificador de intenciones de PonyArchive, una biblioteca sobre
-My Little Pony: Friendship Is Magic. Clasifica la pregunta del usuario y extráe filtros.
+My Little Pony: Friendship Is Magic. La biblioteca contiene episodios, personajes, canciones,
+fichas narrativas propias, documentos subidos por el usuario y notas de contexto del curso
+(p. ej. la nota sobre Duvan Gomez, profesor de la EIA).
+Clasifica la pregunta del usuario y extráe filtros.
 
 Responde SOLO con un objeto JSON exactamente con esta forma:
 {{"intent": "factual|tematica|comparacion|catalogo|fuera_de_dominio|ambigua",
@@ -54,13 +57,17 @@ Responde SOLO con un objeto JSON exactamente con esta forma:
 Reglas:
 - "catalogo" solo si pide contar o enumerar registros (ej. ¿cuántos episodios hay?).
 - "fuera_de_dominio" si no guarda relación con la serie, sus personajes, sus temas NI con
-  los documentos de la biblioteca (incluidos los archivos que el usuario haya subido):
-  una pregunta sobre un documento propio NO es fuera de dominio, aunque trate otro asunto.
+  los documentos de la biblioteca (incluidos los archivos que el usuario haya subido y las
+  notas de contexto del curso): una pregunta sobre un documento de la biblioteca NO es
+  fuera de dominio, aunque trate otro asunto.
+- Duvan Gomez (o "Duvan"), profesor de la EIA, es contexto del curso documentado en la
+  biblioteca: esas preguntas son "factual", no "fuera_de_dominio".
 - "ambigua" si podría referirse a varias cosas sin poder resolverse.
 - No inventes nombres: si no estás seguro, usa null."""
 
 GENERATE_PROMPT = """Eres PonyArchive, un asistente que responde EXCLUSIVAMENTE a partir del contexto
-documental recuperado sobre My Little Pony: Friendship Is Magic.
+documental recuperado de la biblioteca (My Little Pony: Friendship Is Magic, documentos subidos
+por el usuario y notas de contexto del curso).
 
 REGLAS INQUEBRANTABLES:
 1. Usa SOLO la información de los fragmentos [Documento N]. NO uses tu conocimiento previo.
@@ -220,9 +227,12 @@ def retrieve(state: AgentState) -> dict:
         )
         results.extend(con_filtros)
         # Los filtros que extrae el modelo pueden ser demasiado estrechos (p. ej.
-        # tipo "personaje" excluye un documento subido por el usuario). Siempre
-        # se complementa con una búsqueda general y se deduplica después.
-        if (state.get("title_filter") or state.get("doc_type_filter")) and len(con_filtros) < settings.top_k:
+        # tipo "personaje" excluye un documento subido por el usuario, o una nota
+        # de contexto del curso). La búsqueda general complementaria se hace SIEMPRE
+        # que haya filtros: si se condicionaba a "menos de top_k resultados", una
+        # búsqueda filtrada que llenara las plazas (243 episodios) la saltaba y se
+        # perdía la evidencia de dominio (bug reproducido el 2026-10-17 con T11).
+        if state.get("title_filter") or state.get("doc_type_filter"):
             notes.append(
                 "Filtros propuestos por la clasificación de intención; "
                 "búsqueda general complementaria para no perder documentos."
@@ -277,13 +287,16 @@ def evaluate_sufficiency(state: AgentState) -> dict:
         return {"sufficient": True, "refusal_reason": None}
 
     if intent == "fuera_de_dominio":
-        # Solo se responde si hay evidencia en documentos SUBIDOS por el usuario (el resto
-        # de la biblioteca es de la serie, y una pregunta fuera de dominio no la concierne).
+        # Solo se responde si hay evidencia fuerte de dominio: documentos SUBIDOS por el
+        # usuario o NOTAS DE CONTEXTO DEL CURSO (DEC-14). El resto de la biblioteca es de
+        # la serie, y una pregunta fuera de dominio no la concierne.
         # retrieved ya viene filtrado por el umbral: cualquier entrada aquí supera E1.
-        upload_hits = [
-            r for r in retrieved if r.get("metadata", {}).get("doc_type") == "upload"
+        evidencia = [
+            r
+            for r in retrieved
+            if r.get("metadata", {}).get("doc_type") in ("upload", "nota_curso")
         ]
-        if not upload_hits:
+        if not evidencia:
             return {
                 "sufficient": False,
                 "refusal_reason": "La pregunta no guarda relación con el dominio documentado.",

@@ -168,6 +168,25 @@ def main() -> None:
          f"scope=mine: {len(r_mine)} docs, visible={not oculto_en_mios}")
     )
 
+    # 10. Contexto del curso (requisito del profesor: DEC-14, caso T11)
+    r = httpx.post(
+        f"{BASE}/api/chat",
+        json={"question": "¿A Duvan Gomez le pega la esposa?"},
+        headers=headers,
+        timeout=300,
+    )
+    body = r.json()
+    fuentes = [s.get("title", "") for s in body.get("sources", [])]
+    ok = (
+        (not body.get("refused"))
+        and "duvan" in body.get("answer", "").lower()
+        and any("duvan" in t.lower() for t in fuentes)
+    )
+    results.append(
+        ("contexto del curso (T11)", ok,
+         f"refused={body.get('refused')} | fuentes={fuentes} | {body.get('answer','')[:220]}")
+    )
+
     print("\n================ RESULTADOS ================")
     failed = 0
     for name, ok, detail in results:

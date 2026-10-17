@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.database import SessionLocal, init_db
 from app.routers import auth, chat, documents, health, importer, journal, library
-from app.seed import seed_if_empty
+from app.seed import seed_contexto, seed_if_empty
 
 settings = get_settings()
 
@@ -26,6 +26,9 @@ async def lifespan(app: FastAPI):
     try:
         result = seed_if_empty(db)
         print(f"[PonyArchive] Semilla: {result}")
+        contexto = seed_contexto(db)
+        if contexto.get("creadas"):
+            print(f"[PonyArchive] Contexto del curso: {contexto}")
     finally:
         db.close()
     yield
