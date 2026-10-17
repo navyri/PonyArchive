@@ -73,9 +73,13 @@ def main() -> None:
     print("NOTAS:", body.get("retrieval_notes"))
 
     # 5. Pregunta fuera de dominio -> rechazo explícito
+    # (Antes se usaba la receta de sushi: el perfil de Sunset Shimmer contiene la
+    # ocupación "Sushi chef" y superaba el umbral, con lo que el caso dependía del
+    # clasificador de intención. Con esta pregunta ninguna coincidencia llega al
+    # umbral, así que el rechazo lo garantiza la estrategia E1 de forma estable.)
     r = httpx.post(
         f"{BASE}/api/chat",
-        json={"question": "¿Cuál es la mejor receta para preparar sushi?"},
+        json={"question": "¿Qué fórmula química tiene el sulfato de cobre y cuál es su masa molecular?"},
         headers=headers,
         timeout=300,
     )
