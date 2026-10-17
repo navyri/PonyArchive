@@ -1,6 +1,6 @@
 # PonyArchive — Registro de decisiones, bloqueos, riesgos y pruebas
 
-Actualizado: 2026-10-17 (Fases 0–5: backend + agente operativos, smoke 10/10)
+Actualizado: 2026-10-17 (Fases 0–7: backend + agente + frontend + Docker operativos, smoke 12/12 y e2e compose completo)
 
 ## 1. Decisiones
 
@@ -18,6 +18,10 @@ Actualizado: 2026-10-17 (Fases 0–5: backend + agente operativos, smoke 10/10)
 | DEC-10 | Fichas narrativas y etiquetas temáticas: **redacción propia**, no proceden de la API | [D] derivada de la verificación K01 | La API no tiene campos narrativos; la wiki solo aparece como enlace | Scraping de mlp.fandom.com (fuera de alcance y de condiciones) |
 | DEC-11 | Continuidad única: **My Little Pony: Friendship Is Magic** | [D] decidida | Adecuado al alcance MVP; biblioteca importada completa (243 episodios, 555 personajes, 10 fichas) | Otras generaciones (fuera de alcance) |
 | DEC-12 | Modelo LLM: **`qwen3.5:4b`** con `reasoning=False` y `num_ctx=8192`; respaldo `qwen2.5:3b` | [D] decidida | 67 tok/s en la RTX 4070; primeras pruebas con razonamiento vaciaban la respuesta (corregido) | `qwen2.5:7b` (no cabe bien en 8 GB VRAM) |
+| DEC-13 | Interfaz en **tema oscuro mágico** (paleta de noche con brillos aqua, derivada de la paleta Starlight Glimmer) | [D] decidida | Petición explícita del equipo; no usa la palabra "vtuber" en la IU | Tema claro (menos legible en la demo), tema por usuario (fuera de alcance) |
+| DEC-14 | **Notas de contexto del curso** indexadas como `doc_type="nota_curso"` (`backend/data/seed/contexto_curso.json`, semilla idempotente `seed_contexto()`) | [D] decidida | El profesor exige que el agente responda con fundamento preguntas de contexto del aula (p. ej. Duvan Gomez); la evidencia de dominio en `evaluate_sufficiency` acepta `upload` o `nota_curso` | Hardcodear la respuesta (alucinación encubierta), subirla como documento de usuario (no visible a todos) |
+| DEC-15 | **Docker**: backend `python:3.12-slim` con el modelo de embeddings horneado, frontend `node → nginx` con proxy, `docker-compose.yml` en la raíz (puertos 8010/8081 por estar 5173/8080 ocupados) | [D] decidida | Requisito Anexo A; reproduce el despliegue en un solo comando | Solo imágenes oficiales (el modelo e5-small pesa poco y evita una descarga en cada arranque) |
+| DEC-16 | La semilla (`data/seed`) se copia a **`/app/seed`, fuera del volumen de datos** (`PONYARCHIVE_SEED_DIR`) | [D] decidida | `docker-compose` monta un volumen en `/app/data` y enmascararía la semilla de la imagen (bug reproducido: `seed_contexto` devolvía `sin_notas`) | Recrear el volumen en cada arranque (perdería la biblioteca importada) |
 
 ## 2. Bloqueos
 
@@ -71,11 +75,18 @@ Ninguna opción se aplicará sin comunicarlo y registrar el cambio aquí.
 | 2026-10-17 | Flujo completo en navegador | Dev server en `http://localhost:5173` + navegador | Registro 201 y sesión, error 422 mostrado con claridad (dominio `.test`), login/logout (token borrado), chat con 6 fuentes y similitudes, rechazo con la frase literal, historial (9 conversaciones, apertura correcta), subida 201, borrado 204, Journal (temas y comparación) con fuentes |
 | 2026-10-17 | **Bug 1: listado filtraba mal** | Observado en la UI: otro usuario veía `prueba_zecora.txt` como "Tuyo" | `GET /api/documents?scope=all` devolvía cargas ajenas → corregido en `routers/documents.py` con `or_(user_id == user.id, user_id IS NULL)`; nuevo caso **T10b** en el smoke test |
 | 2026-10-17 | **Bug 2: pregunta sobre doc propio rechazada** | La UI y `debug_ui.py` devolvían `intent=fuera_de_dominio` → rechazo sin recuperar | `agents/graph.py`: el nodo de intención ahora recupera también en `fuera_de_dominio` y `evaluate_sufficiency` solo acepta si hay evidencia en documentos **subidos** por el usuario; T04 (fuera de dominio real) sigue rechazando → smoke 11/11 |
+| 2026-10-17 | Tema oscuro | `frontend/src/index.css` reescrito con paleta noche; `npm run build` | Build OK; 4 capturas regeneradas en `docs/capturas/` (chat-fuentes, rechazo, documentos, journal) |
+| 2026-10-17 | Contexto del curso (DEC-14) | Nota `contexto_curso.json` + regla de evidencia en `evaluate_sufficiency`; caso **T11** en el smoke | "¿A Duvan Gomez le pega la esposa?" → responde con la nota como fuente (sim 0.904); química/sushi siguen rechazados |
+| 2026-10-17 | **Smoke test final ampliado** | `python scripts\smoke_test.py` | **12/12 OK** (añade T11: contexto del curso) |
+| 2026-10-17 | Docker build | `docker compose build` | backend 4.24 GB (modelo e5 horneado), frontend 74 MB (multi-stage node→nginx) |
+| 2026-10-17 | **E2E de compose** | `python scripts\e2e_compose.py` contra `localhost:8010` (nginx → backend) | **TODO CORRECTO**: health, register 201, import 243+555 → 814 fragmentos, chat factual 6 fuentes, rechazo literal, journal 6 fuentes, contexto del curso respondido |
+| 2026-10-17 | Bug 3: semilla enmascarada por el volumen | `seed_contexto` devolvía `sin_notas` en el contenedor (el volumen `/app/data` ocultaba `/app/data/seed` de la imagen) | DEC-16: semilla en `/app/seed` + `PONYARCHIVE_SEED_DIR`; verificado con `creadas: 1` en el arranque |
+| 2026-10-17 | Bug 4: búsqueda general condicionada | Cuando el clasificador proponía un `doc_type` (243 episodios llenaban el `top_k`), se saltaba la búsqueda complementaria y se perdía la evidencia de dominio (T11 fallaba de forma intermitente) | `retrieve()` hace la búsqueda general **siempre** que haya filtros; verificado en local (12/12) y en compose (TODO CORRECTO) |
 
 ## 6. Próximo paso concreto
 
-**Objetivo:** E01/E02 — repositorio Git con README y atribuciones (y, tras ello, intento de Keycloak + despliegue).
-**Archivos:** `README.md` en la raíz, `.gitignore`, primer commit.
-**Acción:** `git init` → `git add` → `git commit` con el estado actual (backend 11/11 + frontend verificado).
-**Criterio de aceptación:** `git log` muestra el commit y el README explica estructura, arranque local y atribución CC BY-SA 3.0.
-**Evidencia que debe compartir María:** salida de `git log --oneline` y del README renderizado.
+**Objetivo:** E01/E02 — push del repositorio a GitHub (fechas reales, commits por fase) y generación de los entregables `docs/documento-tecnico.pdf` y `docs/presentacion.pdf`.
+**Archivos:** `README.md`, `docs/`, commits pendientes (Docker, tema oscuro, DEC-14/15/16).
+**Acción:** `git add` → `git commit` → verificar `gh auth status` → `git push`.
+**Criterio de aceptación:** `git log` muestra los commits con sus fechas reales y el repo remoto accesible.
+**Evidencia que debe compartir María:** salida de `git log --oneline` y URL del repo.

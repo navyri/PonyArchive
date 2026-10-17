@@ -21,11 +21,11 @@
 | ID | Estado | Evidencia | Pendiente o limitación |
 |----|--------|-----------|------------------------|
 | D01 | [x] | DEC-04 React+Vite+TS, DEC-05 Keycloak (con plan alternativo), DEC-06 Ollama, DEC-12 `qwen3.5:4b` + `multilingual-e5-small` + ChromaDB; dependencias instaladas y compatibles con Python 3.14 | Frontend aún no creado |
-| D02 | [ ] | — | Arquitectura y diagrama sin crear |
+| D02 | [x] | Diagrama de arquitectura generado en `docs/arquitectura.png` (2480×1760, Edge headless, sin solapamientos) | — |
 | D03 | [x] | Modelo de datos en `backend/app/models.py` (User, Document, Chunk-free: fragmentos en Chroma, Conversation, Message) | — |
 | D04 | [x] | Estado y nodos LangGraph en `backend/app/agents/state.py` y `graph.py` (validate_intent→retrieve→evaluate_sufficiency→generate/validate_answer/reject→catalog_query→persist) | — |
 | D05 | [~] | Contratos recogidos en `docs/matriz-requisitos.md` (21 endpoints implementados y responden en `/docs`) | Falta revisar clasificación pública/privada con el profesor (R-04) |
-| D06 | [ ] | — | Repositorio git sin crear (carpeta sin `.git`); estructura = Anexo A del PDF |
+| D06 | [~] | Repositorio git creado: 2 commits locales (`aa4f435`, `c967e62`), `.gitignore` y estructura = Anexo A (backend/frontend con `Dockerfile`, `docker-compose.yml` en la raíz) | Falta `remote` + push a GitHub (E01) |
 | D07 | [x] | `.env.example` en la raíz con todas las variables documentadas (sin secretos); `backend\.env` real local | — |
 
 ## FASE 2 — Viabilidad temprana
@@ -34,8 +34,8 @@
 |----|--------|-----------|------------------------|
 | V01 | [x] | Ollama v0.40.5 instalado; `qwen3.5:4b` descargado y sirviendo (67 tok/s GPU RTX 4070); primera generación ~45 s, después 3–18 s | — |
 | V02 | [x] | Embeddings `intfloat/multilingual-e5-small` (384 dims) ejecutados vía sentence-transformers | — |
-| V03 | [x] | ChromaDB persistente conectada: 813 fragmentos indexados (808 documentos) en `backend\vectorstore` | — |
-| V04 | [x] | RAG completo verificado con `smoke_test.py` → 11/11: recuperación, umbral y rechazo explícito | — |
+| V03 | [x] | ChromaDB persistente conectada: 819 fragmentos indexados en `backend\vectorstore` (incluye notas de contexto); en Docker: 814 fragmentos | — |
+| V04 | [x] | RAG completo verificado con `smoke_test.py` → **12/12**: recuperación, umbral, rechazo explícito y contexto del curso (T11) | — |
 | V05 | [ ] | — | — |
 | V06 | [ ] | — | — |
 | V07 | [ ] | — | — |
@@ -72,7 +72,7 @@
 
 | ID | Estado | Evidencia | Pendiente o limitación |
 |----|--------|-----------|------------------------|
-| A01 | [x] | Grafo LangGraph funcional en `backend/app/agents/graph.py`; probado por los 10 casos del smoke | — |
+| A01 | [x] | Grafo LangGraph funcional en `backend/app/agents/graph.py`; probado por los 12 casos del smoke | — |
 | A02 | [x] | Recuperación vectorial con metadatos (doc_type, tema, usuario) en `services/vectorstore.py` | — |
 | A03 | [x] | Prompt restringido al contexto en `graph.py` (E3) | — |
 | A04 | [x] | Rechazo con frase literal exigida por §4 del PDF: "No tengo suficiente información en mi base de conocimiento para responder esa pregunta." (T04 y T05 del smoke) | — |
@@ -101,14 +101,15 @@
 
 | ID | Estado | Evidencia | Pendiente o limitación |
 |----|--------|-----------|------------------------|
-| T01–T10, T10b, B04 | [x] | `python scripts\smoke_test.py` → **11/11 OK** (2026-10-17): health, register, 401, T01 factual con fuentes, T04 rechazo fuera de dominio, T05 sin evidencia, historial B04, K07 carga, T07 pregunta sobre doc cargado, T10 aislamiento de recuperación, T10b aislamiento de listado | — |
-| T11–T12 y pruebas de rendimiento/carga | [ ] | — | Sin iniciar |
+| T01–T10, T10b, B04, T11 | [x] | `python scripts\smoke_test.py` → **12/12 OK** (2026-10-17): health, register, 401, T01 factual con fuentes, T04 rechazo fuera de dominio, T05 sin evidencia, historial B04, K07 carga, T07 pregunta sobre doc cargado, T10 aislamiento de recuperación, T10b aislamiento de listado, **T11 contexto del curso** | — |
+| T12 y pruebas de rendimiento/carga | [ ] | — | Sin iniciar |
+| E2E en Docker | [x] | `python scripts\e2e_compose.py` → **TODO CORRECTO** (2026-10-17): health vía nginx (814 fragmentos), register 201, import 243 episodios + 555 personajes, chat factual 6 fuentes, rechazo literal, journal 6 fuentes, contexto del curso respondido | — |
 
 ## FASE 8 — Despliegue
 
 | ID | Estado | Evidencia | Pendiente o limitación |
 |----|--------|-----------|------------------------|
-| P01–P07 | [ ] | — | Sin iniciar. Presupuesto aprobado: 0 USD |
+| P01–P07 | [~] | **Docker local verificado**: `backend/Dockerfile` (python:3.12-slim, modelo e5 horneado, HEALTHCHECK), `frontend/Dockerfile` (node→nginx con proxy `/api`), `docker-compose.yml` → build OK y E2E TODO CORRECTO en `localhost:8010/8081` | **Despliegue en la nube sin iniciar** (Render/Vercel/HF + túnel Ollama): requiere credenciales y `gh auth status` |
 
 ## FASE 9 — Entregables
 
@@ -118,14 +119,15 @@
 
 ---
 
-## Resumen de estado (2026-10-17, tras smoke 11/11 y verificación de la interfaz en navegador)
+## Resumen de estado (2026-10-17, tras smoke 12/12 + E2E Docker y verificación de la interfaz en navegador)
 
-- `[x]`: R01, R05, D01, D03, D04, D07, V01–V04, B02–B06, K01, K03–K08, K10, A01–A07, A09, A10, F01–F05, F07, T01–T10/T10b/B04 (42)
-- `[~]`: R02, R03, R04, R06, D05, K02, K09, K12, A08 (9)
+- `[x]`: R01, R05, D01–D04, D07, V01–V04, B02–B06, K01, K03–K08, K10, A01–A07, A09, A10, F01–F05, F07, T01–T11/T10b/B04, E2E Docker (46)
+- `[~]`: R02, R03, R04, R06, D05, D06, K02, K09, K12, A08, P01–P07 (11)
 - `[!]`: ninguno
-- `[ ]`: D02, D06, V05–V07, B01, K11, A11, F06, F08, T11–T12, P01–P07, E01–E09 (22 aprox.)
+- `[ ]`: V05–V07, B01, K11, A11, F06, F08, T12, E01–E09 (16 aprox.)
 
 ### Bloqueos y decisiones abiertas
 1. **B01/Keycloak** (DEC-05): probar Docker con daemon encendido; si los free tiers no lo sostienen → plan alternativo JWT (ya operativo en modo `local`).
 2. **R-04**: tensión "ningún endpoint sin autenticación" vs. `/health`, `OPTIONS`, `/api/auth/*` → consulta al profesor.
 3. **K12**: ¿alcance de la eliminación de documentos?
+4. **P01–P07**: despliegue en nube pendiente de credenciales de María (`gh auth status`, cuentas Render/Vercel/HF).
