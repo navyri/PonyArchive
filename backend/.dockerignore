@@ -1,0 +1,14 @@
+# Nunca entra en la imagen
+.env
+.env.*
+vectorstore/
+__pycache__/
+*.pyc
+*.db
+.vscode/
+.idea/
+
+# data/ es estado en runtime (SQLite, volúmenes), PERO la semilla de fichas
+# narrativas sí es código del proyecto y debe viajar en la imagen:
+data/*
+!data/seed/
