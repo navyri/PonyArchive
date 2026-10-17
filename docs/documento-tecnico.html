@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>PonyArchive — Documento técnico</title>
+<style>
+  @page { size: A4; margin: 20mm 18mm 18mm 18mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-size: 10.5pt; line-height: 1.55; color: #26222e;
+    margin: 0; padding: 0 0 24px 0; background: #fff;
+  }
+  h1 { font-size: 21pt; line-height: 1.15; margin: 0 0 6px 0; color: #3b2a63; }
+  h2 {
+    font-size: 13.5pt; color: #fff; background: linear-gradient(90deg, #4b2f8f, #7a52c9);
+    padding: 7px 12px; border-radius: 6px; margin: 26px 0 10px 0;
+    page-break-after: avoid;
+  }
+  h3 { font-size: 11.5pt; color: #4b2f8f; margin: 16px 0 6px 0; page-break-after: avoid; }
+  p { margin: 7px 0; text-align: justify; }
+  ul, ol { margin: 7px 0; padding-left: 22px; }
+  li { margin-bottom: 4px; }
+  code {
+    font-family: Consolas, "Cascadia Mono", monospace; font-size: 9pt;
+    background: #f1ecfa; color: #4b2f8f; padding: 1px 5px; border-radius: 4px;
+  }
+  pre {
+    background: #150c2b; color: #e8e2ff; border-radius: 8px;
+    padding: 11px 13px; font-size: 8.6pt; line-height: 1.5; overflow: hidden;
+    white-space: pre-wrap; word-break: break-word; page-break-inside: avoid;
+  }
+  pre code { background: none; color: inherit; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 9.3pt; page-break-inside: avoid; }
+  th { background: #ede7fa; color: #3b2a63; text-align: left; padding: 6px 9px; border: 1px solid #d5cbef; }
+  td { padding: 6px 9px; border: 1px solid #e2dcf2; vertical-align: top; }
+  tr:nth-child(even) td { background: #faf8ff; }
+  .portada {
+    text-align: center; padding: 70px 0 40px 0;
+    border-bottom: 4px solid #7a52c9; margin-bottom: 8px;
+  }
+  .portada .sub { font-size: 13pt; color: #5a4a7a; margin: 10px 0 30px 0; }
+  .portada .meta { font-size: 10.5pt; color: #443c55; line-height: 2; }
+  .badge {
+    display: inline-block; font-size: 8.5pt; font-weight: 700;
+    padding: 2px 9px; border-radius: 999px; margin-right: 5px;
+  }
+  .ok { background: #dff5e4; color: #1a7a35; }
+  .pend { background: #fdf0d5; color: #9a6b00; }
+  .nota {
+    background: #f6f2ff; border-left: 4px solid #7a52c9;
+    padding: 9px 13px; border-radius: 0 6px 6px 0; margin: 11px 0;
+    page-break-inside: avoid;
+  }
+  .nota strong { color: #3b2a63; }
+  .caption { font-size: 8.8pt; color: #6b6480; text-align: center; margin: 4px 0 12px 0; }
+  img.fig { width: 100%; border: 1px solid #ddd5f0; border-radius: 8px; }
+  .page-break { page-break-before: always; }
+  .resaltado { background: #fff8d6; padding: 1px 4px; border-radius: 3px; }
+  .toc li { margin-bottom: 3px; }
+</style>
+</head>
+<body>
+
+<div class="portada">
+  <h1>PonyArchive</h1>
+  <p class="sub">Biblioteca inteligente de <em>My Little Pony: Friendship Is Magic</em><br>
+  con agente RAG (LangChain + LangGraph) y modelo local</p>
+  <p class="meta">
+    <strong>Documento técnico</strong> — trabajo de agentes de IA, 2026-2<br>
+    Integrante: <strong>Mariana Lemus Esguerra</strong><br>
+    Fecha de elaboración: 17 de octubre de 2026<br>
+    Repositorio: <code>github.com/navyri/PonyArchive</code>
+  </p>
+</div>
+
+<h2>Índice</h2>
+<ol class="toc">
+  <li>Nombre del proyecto e integrantes</li>
+  <li>Tema seleccionado y descripción del problema</li>
+  <li>Arquitectura general y diagrama de arquitectura</li>
+  <li>Tecnologías utilizadas</li>
+  <li>Descripción del backend</li>
+  <li>Descripción del frontend</li>
+  <li>Descripción del agente y del flujo de LangGraph</li>
+  <li>Modelo local utilizado y base de datos vectorial</li>
+  <li>Proceso de carga de documentos</li>
+  <li>Estrategias implementadas para evitar alucinaciones</li>
+  <li>Seguridad y autenticación</li>
+  <li>Despliegue</li>
+  <li>Evidencias de funcionamiento</li>
+  <li>Problemas encontrados y conclusiones</li>
+</ol>
+
+<!-- ═════════ 1 ═════════ -->
+<h2>1. Nombre del proyecto e integrantes</h2>
+<p><strong>Proyecto:</strong> PonyArchive — biblioteca inteligente de la serie
+<em>My Little Pony: Friendship Is Magic</em> con una función especial, el <em>Friendship Journal</em>
+(consulta temática y comparación de episodios y personajes).</p>
+<p><strong>Integrante:</strong> Mariana Lemus Esguerra (trabajo individual, conforme a DEC-01).</p>
+<p>El sistema responde preguntas sobre la serie usando <strong>exclusivamente documentos indexados</strong>
+(episodios, personajes, fichas narrativas propias, notas de contexto del curso y archivos subidos por cada
+usuario). Cuando no hay evidencia suficiente, <strong>rechaza explícitamente</strong> con la frase literal
+exigida por el enunciado, en lugar de inventar.</p>
+
+<!-- ═════════ 2 ═════════ -->
+<h2>2. Tema seleccionado y descripción del problema</h2>
+<p>Los agentes de IA deben responder preguntas sobre un corpus concreto sin fiarse del conocimiento
+previo del modelo de lenguaje. El problema práctico es doble:</p>
+<ol>
+  <li><strong>Respuestas fundamentadas:</strong> una pregunta como <em>«¿qué le ocurre a Twilight Sparkle en
+  Lesson Zero?»</em> debe responderse con información recuperada de los documentos y citando la fuente,
+  no con la memoria paramétrica del LLM, que puede ser imprecisa o estar desactualizada.</li>
+  <li><strong>Rechazo honesto:</strong> ante preguntas fuera del corpus (p. ej. recetas de cocina o
+  fórmulas de química), el sistema debe decir literalmente
+  <span class="resaltado">«No tengo suficiente información en mi base de conocimiento para responder esa
+  pregunta.»</span> en lugar de generar una respuesta plausiblemente falsa.</li>
+</ol>
+<p>El dominio elegido — <em>Friendship Is Magic</em> — aporta un corpus amplio y verificable
+(243 episodios y 555 personajes descargados de la Pony API pública) y permite, además, un caso real de
+<strong>conocimiento de contexto</strong>: datos que el equipo conoce por la asignatura pero que no están
+en ningún documento público (ver §7, <em>notas de contexto del curso</em>).</p>
+<p>Sobre el formato: se usa código Python (LangChain/LangGraph) tal como exige el enunciado; están
+prohibidos los constructores visuales (n8n, Zapier, Make, Flowise, Botpress) y no se utiliza ninguno.</p>
+
+<!-- ═════════ 3 ═════════ -->
+<h2>3. Arquitectura general y diagrama de arquitectura</h2>
+<p>El sistema son tres piezas desacopladas más un servicio externo opcional:</p>
+<ul>
+  <li><strong>Backend</strong> (FastAPI + LangGraph): API REST con 21 endpoints, autenticación JWT,
+  pipeline de ingesta y el grafo del agente.</li>
+  <li><strong>Frontend</strong> (React + Vite + TypeScript): interfaz con chat, documentos, historial y
+  Friendship Journal; habla exclusivamente con el backend mediante <code>/api</code>.</li>
+  <li><strong>Persistencia:</strong> SQLite (usuarios, documentos, conversaciones, mensajes) y ChromaDB
+  (fragmentos + vectores) en disco.</li>
+  <li><strong>Modelo local:</strong> Ollama corriendo en el portátil del equipo; el backend lo consumió
+  por HTTP (<code>OLLAMA_BASE_URL</code>).</li>
+</ul>
+
+<figure>
+  <img class="fig" src="arquitectura.png" alt="Diagrama de arquitectura de PonyArchive">
+  <div class="caption">Figura 1. Diagrama de arquitectura (imagen generada a partir de la estructura real del código).</div>
+</figure>
+
+<h3>Flujo de una consulta</h3>
+<pre><code>Usuario (React) --POST /api/chat--> FastAPI --grafo LangGraph-->
+   validate_intent --> retrieve (ChromaDB) --> evaluate_sufficiency
+        |                  |                        |
+        |                  +--> evidencia suficiente --> generate --> validate_answer --> persist
+        |                  +--> sin evidencia ------------------------------^ (rechazo literal)
+        +--> consulta de catálogo (conteos por SQL) --> persist
+FastAPI --HTTP--> Ollama (qwen3.5:4b, local)   |   Respuesta + fuentes --> React</code></pre>
+
+<!-- ═════════ 4 ═════════ -->
+<h2>4. Tecnologías utilizadas</h2>
+<table>
+  <thead><tr><th style="width:22%">Capa</th><th style="width:34%">Tecnología</th><th>Motivo / versión</th></tr></thead>
+  <tbody>
+    <tr><td>Lenguaje backend</td><td>Python 3.14.2</td><td>Instalado en el equipo; compatibilidad verificada con el ecosistema ML (riesgo R-02 resuelto)</td></tr>
+    <tr><td>Framework web</td><td>FastAPI + Uvicorn</td><td>Encaja con LangChain; documentación OpenAPI automática en <code>/docs</code></td></tr>
+    <tr><td>Orquestación del agente</td><td>LangChain + LangGraph</td><td>Grafo de estados con nodos y rutas condicionales (§7)</td></tr>
+    <tr><td>Modelo de lenguaje</td><td>Ollama — <code>qwen3.5:4b</code></td><td>Local, gratuito, 67 tok/s en la RTX 4070 (DEC-12)</td></tr>
+    <tr><td>Embeddings</td><td><code>intfloat/multilingual-e5-small</code> (384 d)</td><td>_multilingüe, bueno en español; prefijos <code>query:</code>/<code>passage:</code> aplicados (DEC-09)</td></tr>
+    <tr><td>Base vectorial</td><td>ChromaDB persistente</td><td>Embebida, sin servicio externo, 0 USD (DEC-08)</td></tr>
+    <tr><td>Base relacional</td><td>SQLite + SQLAlchemy</td><td>Sin servidor; suficiente para el alcance (DEC-08)</td></tr>
+    <tr><td>Frontend</td><td>React 19 + Vite + TypeScript</td><td>Compilación con <code>tsc</code> + Vite; enrutado con react-router (DEC-04)</td></tr>
+    <tr><td>Autenticación</td><td>JWT propio (modo <code>local</code>)</td><td>DEC-05: se eligió Keycloak con plan alternativo documentado; ver §11</td></tr>
+    <tr><td>Contenedores</td><td>Docker + Docker Compose</td><td>Estructura Anexo A: <code>Dockerfile</code> en backend y frontend + <code>docker-compose.yml</code></td></tr>
+    <tr><td>Datos</td><td>Pony API (<code>ponyapi.net</code>)</td><td>243 episodios, 555 personajes, 192 canciones; datos CC BY-SA 3.0 (atribución obligatoria)</td></tr>
+  </tbody>
+</table>
+<p>Todas las dependencias están fijadas en <code>backend/requirements.txt</code> y <code>frontend/package.json</code>.
+No se usa ningún servicio comercial de pago: el presupuesto es 0 USD.</p>
+
+<!-- ═════════ 5 ═════════ -->
+<h2 class="page-break">5. Descripción del backend</h2>
+<p>El backend está en <code>backend/</code> y sigue una estructura por capas:</p>
+<pre><code>backend/
+├── app/
+│   ├── main.py          # arranque, CORS, lifespan (semillas de la biblioteca)
+│   ├── config.py        # ajustes desde variables de entorno (pydantic-settings)
+│   ├── database.py      # motor SQLAlchemy + sesión
+│   ├── models.py        # User, Document, Conversation, Message
+│   ├── security.py      # hash de contraseñas, emisión/verificación de JWT
+│   ├── seed.py          # semillas: fichas narrativas y notas de contexto
+│   ├── routers/         # auth, chat, documents, library, journal, importer, health
+│   ├── agents/          # state.py y graph.py (el grafo LangGraph)
+│   └── services/        # pony_api, ingestion, vectorstore, embeddings
+└── scripts/             # import_pony, smoke_test (12 casos), e2e_compose, debug_*</code></pre>
+
+<h3>Endpoints (21)</h3>
+<table>
+  <thead><tr><th style="width:14%">Grupo</th><th style="width:52%">Rutas</th><th>Nota</th></tr></thead>
+  <tbody>
+    <tr><td>Auth</td><td><code>POST /api/auth/register</code>, <code>POST /api/auth/login</code>, <code>POST /api/auth/refresh</code>, <code>POST /api/auth/logout</code>, <code>GET /api/auth/me</code></td><td>Registro → 201 + token</td></tr>
+    <tr><td>Chat</td><td><code>POST /api/chat</code>, <code>GET /api/chat/conversations</code>, <code>GET /api/chat/conversations/{id}</code>, <code>DELETE /api/chat/conversations/{id}</code></td><td>El POST ejecuta el grafo</td></tr>
+    <tr><td>Documentos</td><td><code>POST /api/documents</code>, <code>GET /api/documents</code>, <code>DELETE /api/documents/{id}</code></td><td>Carga .txt/.md y borrado (204)</td></tr>
+    <tr><td>Biblioteca</td><td><code>GET /api/library</code>, <code>GET /api/library/documents/{id}</code></td><td>Filtros por tipo, título y tema</td></tr>
+    <tr><td>Journal</td><td><code>GET /api/journal/themes</code>, <code>POST /api/journal/query</code>, <code>POST /api/journal/compare</code>, <code>GET /api/journal/characters</code>, <code>GET /api/journal/episodes</code></td><td>Friendship Journal</td></tr>
+    <tr><td>Importación</td><td><code>POST /api/import/episodes</code>, <code>POST /api/import/characters</code></td><td>Desde la Pony API</td></tr>
+    <tr><td>Infra</td><td><code>GET /health</code></td><td>Estado, modelo, <code>auth_provider</code> y fragmentos indexados</td></tr>
+  </tbody>
+</table>
+
+<h3>Persistencia y aislamiento</h3>
+<p>Cada documento pertenece a un usuario (<code>Document.user_id</code>). Los documentos <strong>sembrados</strong>
+(episodios, personajes, fichas, notas de contexto) tienen <code>user_id = -1</code> y son visibles para todos;
+los <strong>subidos</code> solo para su dueño. Todos los listados y las búsquedas aplican ese filtro
+(cláusula <code>$or [user_id = -1, user_id = usuario]</code>), lo que fue verificado con los casos T10/T10b
+del smoke test (dos usuarios con cargas cruzadas).</p>
+
+<!-- ═════════ 6 ═════════ -->
+<h2>6. Descripción del frontend</h2>
+<p>Aplicación SPA en <code>frontend/</code> con React + TypeScript y enrutado por rutas:</p>
+<table>
+  <thead><tr><th style="width:16%">Ruta</th><th style="width:26%">Página</th><th>Funciones</th></tr></thead>
+  <tbody>
+    <tr><td><code>/login</code></td><td><code>LoginPage</code></td><td>Registro e inicio de sesión; muestra errores del backend (p. ej. 422) con claridad</td></tr>
+    <tr><td><code>/</code></td><td><code>ChatPage</code></td><td>Chat con fuentes (título, tipo y similitud), etiqueta «Sin evidencia suficiente» con la frase literal, sugerencias y barra lateral con el historial (abrir/borrar conversaciones)</td></tr>
+    <tr><td><code>/documentos</code></td><td><code>DocumentsPage</code></td><td>Subida (.txt/.md), pestañas Todos/Biblioteca/Míos, filtro por título y borrado con confirmación</td></tr>
+    <tr><td><code>/journal</code></td><td><code>JournalPage</code></td><td>Friendship Journal: temas disponibles, consulta temática y comparación de episodios/personajes</td></tr>
+  </tbody>
+</table>
+<p>Rutas protegidas: sin token, la aplicación redirige a <code>/login</code>; el token se guarda en
+<code>localStorage</code> y se adjunta como <code>Authorization: Bearer</code>. La interfaz usa un
+<strong>tema oscuro mágico</strong> (DEC-13): superficies de vidrio oscuro con brillos aqua, derivado de la
+paleta de Starlight Glimmer, pensado para la proyección de la demostración.</p>
+<p><strong>Verificación:</strong> <code>npm run build</code> (tsc + vite) sin errores y recorrido completo
+en navegador — registro, login/logout, chat con fuentes, rechazo, subida y borrado de documentos,
+historial y Journal (capturas en §13).</p>
+
+<!-- ═════════ 7 ═════════ -->
+<h2 class="page-break">7. Descripción del agente y del flujo de LangGraph</h2>
+<p>El agente se construye con <code>StateGraph</code> de LangGraph sobre un estado tipado
+(<code>AgentState</code>) con la pregunta, el usuario, la conversación, los fragmentos recuperados, la
+intención, la respuesta y las fuentes. <strong>No hay constructores visuales:</strong> el grafo se define
+en código Python en <code>backend/app/agents/graph.py</code>.</p>
+
+<h3>Nodos</h3>
+<table>
+  <thead><tr><th style="width:24%">Nodo</th><th>Función</th></tr></thead>
+  <tbody>
+    <tr><td><code>validate_intent</code></td><td>Clasifica la intención con el LLM (<code>dominio</code>, <code>catalogo</code>, <code>fuera_de_dominio</code>) y propone filtros (tipo de documento, título, tema) con valores por defecto seguros</td></tr>
+    <tr><td><code>retrieve</code></td><td>Búsqueda vectorial en Chroma con filtro de visibilidad; prioriza los documentos subidos por el usuario (+0,05 de bonificación) y hace una búsqueda general complementaria siempre que haya filtros</td></tr>
+    <tr><td><code>evaluate_sufficiency</code></td><td>Decide si hay evidencia: umbral de similitud y reglas por tipo de documento; si no la hay, marca <code>refused</code> con la frase literal</td></tr>
+    <tr><td><code>catalog_query</code></td><td>Para consultas de conteo/católogo, responde con SQL sobre SQLite (E7) sin pasar por el LLM</td></tr>
+    <tr><td><code>generate</code></td><td>Prompt restringido: responder <em>solo</em> con el contexto recuperado, citando fuentes con <code>[n]</code></td></tr>
+    <tr><td><code>validate_answer</code></td><td>Comprueba la respuesta generada (entidades citadas presentes en el contexto, presencia de fuentes); si falla, deriva a <code>reject</code></td></tr>
+    <tr><td><code>reject</code></td><td>Emite el mensaje de rechazo literal exigido</td></tr>
+    <tr><td><code>persist</code></td><td>Guarda pregunta y respuesta en la conversación del usuario</td></tr>
+  </tbody>
+</table>
+
+<h3>Aristas y rutas condicionales</h3>
+<pre><code>START --> validate_intent
+validate_intent --(condicional)--> catalog_query | retrieve
+retrieve --> evaluate_sufficiency
+evaluate_sufficiency --(condicional)--> generate | reject
+generate --> validate_answer
+validate_answer --(condicional)--> persist | reject   (rechazo si la validación falla)
+catalog_query --> persist ; reject --> persist ; persist --> END</code></pre>
+
+<div class="nota"><strong>Nota sobre el conocimiento de contexto (DEC-14):</strong> la intención
+<code>fuera_de_dominio</code> <em>recupera antes de decidir</em>. Si entre los fragmentos recuperados hay
+evidencia de un documento subido por el usuario o de una <strong>nota de contexto del curso</strong>
+(<code>doc_type = nota_curso</code>), la pregunta se responde con esa fuente; si no la hay, se aplica el
+rechazo literal. Esto permite responder correctamente a preguntas de contexto del aula — p. ej.
+«¿A Duvan Gomez le pega la esposa?» → «Según la nota de contexto del curso, a Duvan Gomez le pega la
+esposa y lo deja morado» (fuente citada, similitud 0,904) — sin introducir conocimiento inventado.</div>
+
+<!-- ═════════ 8 ═════════ -->
+<h2>8. Modelo local utilizado y base de datos vectorial</h2>
+<h3>Modelo de lenguaje</h3>
+<ul>
+  <li><strong>Modelo:</strong> <code>qwen3.5:4b</code> servido por <strong>Ollama</strong> en el portátil
+  (RTX 4070 de 8 GB), ejecutándose en local: <code>OLLAMA_BASE_URL=http://localhost:11434</code>. No depende
+  de ningún modelo comercial (requisito T3/R-2).</li>
+  <li><strong>Configuración:</strong> <code>reasoning=False</code> (las primeras pruebas devolvían solo
+  razonamiento vacío), <code>num_ctx=8192</code>, temperatura baja en RAG. Respaldo: <code>qwen2.5:3b</code>.</li>
+  <li><strong>Rendimiento:</strong> 67 tok/s; primera carga ≈45 s y 3–18 s por respuesta después.</li>
+  <li><strong>Justificación (§8 del enunciado):</strong> se eligió un modelo de 4B por tres razones:
+  (1) cabe en 8 GB de VRAM junto a los embeddings sin descargar a CPU; (2) razona bien en español para
+  tareas de síntesis sobre contexto; (3) es local y gratuito, requisito del trabajo. Un 7B tendría mejor
+  calidad nominal pero empeoraría la latencia de la demostración.</li>
+</ul>
+
+<h3>Embeddings y base vectorial</h3>
+<ul>
+  <li><strong>Modelo de embeddings:</strong> <code>intfloat/multilingual-e5-small</code> (384 dimensiones)
+  con sentence-transformers, aplicando los prefijos <code>query:</code> y <code>passage:</code> que e5
+  exige. Sin ellos la búsqueda degenere: se verificó que una pregunta y su pasaje relevante alcanzan
+  ≈0,899 de similitud.</li>
+  <li><strong>Base vectorial:</strong> ChromaDB persistente en <code>backend/vectorstore</code>. Cada
+  fragmento guarda metadatos: <code>doc_type</code>, <code>title</code>, <code>user_id</code>,
+  <code>themes</code>, <code>continuity</code>, <code>chunk_index</code> y <code>source</code>.</li>
+  <li><strong>Parámetros:</strong> <code>TOP_K=6</code> fragmentos por consulta y
+  <code>SIMILARITY_THRESHOLD=0.62</code> (calibrado con preguntas de prueba). La distancia de Chroma se
+  convierte a similitud (<code>1 - distancia</code>).</li>
+  <li><strong>Escala actual:</strong> 816 documentos → <strong>819 fragmentos</strong> en local
+  (814 en el contenedor Docker tras importar la Pony API + semillas).</li>
+</ul>
+
+<!-- ═════════ 9 ═════════ -->
+<h2>9. Proceso de carga de documentos</h2>
+<p>Hay tres vías de entrada, todas con el mismo pipeline final:</p>
+<ol>
+  <li><strong>Importación del catálogo</strong> (<code>POST /api/import/episodes|characters</code> o
+  <code>scripts/import_pony.py</code>): descarga de la Pony API con reintentos y paginación, normaliza
+  campos y genera un texto por registro.</li>
+  <li><strong>Semillas en el arranque</strong> (<code>seed.py</code>): 10 fichas narrativas propias
+  (DEC-10, redacción propia porque la API no tiene campos narrativos) y las notas de contexto del curso
+  (DEC-14). Idempotentes: no duplican si ya existen.</li>
+  <li><strong>Carga por el usuario</strong> (<code>POST /api/documents</code>): archivos .txt y .md.</li>
+</ol>
+
+<h3>Pipeline</h3>
+<pre><code>texto --> troceado (fragmentos con solapamiento)
+      --> deduplicación por content_hash (y por usuario, para no descartar cargas ajenas)
+      --> embed_passages("passage: ...") con e5-small
+      --> ChromaDB.add(fragmento + metadatos)   +   fila en SQLite (doc original)</code></pre>
+<p>La relación fragmento → documento original queda en el metadato <code>doc_id</code>, de modo que cada
+fuente devuelta por una consulta puede reconstruirse hasta el documento (requisito T4). Una segunda
+ejecución de la importación omite los 798 duplicados: la ingesta es <strong>idempotente</strong>.</p>
+
+<!-- ═════════ 10 ═════════ -->
+<h2 class="page-break">10. Estrategias implementadas para evitar alucinaciones</h2>
+<p>El enunciado exige <strong>al menos 2</strong>; se implementaron <strong>7</strong> (E1–E7):</p>
+<table>
+  <thead><tr><th style="width:8%">ID</th><th style="width:30%">Estrategia</th><th>Descripción y ubicación</th></tr></thead>
+  <tbody>
+    <tr><td><strong>E1</strong></td><td>Umbral de similitud</td><td>Solo se aceptan fragmentos con similitud ≥ 0,62 (<code>SIMILARITY_THRESHOLD</code>); los descartados se registran en las notas de recuperación</td></tr>
+    <tr><td><strong>E2</strong></td><td>Nodo de suficiencia</td><td><code>evaluate_sufficiency</code>: antes de generar, decide con reglas explícitas si hay evidencia; sin ella, no se invoca al LLM y se rechaza</td></tr>
+    <tr><td><strong>E3</strong></td><td>Prompt restringido</td><td><code>generate</code> ordena responder solo con el contexto recuperado, citar con <code>[n]</code> y no completar con conocimiento previo</td></tr>
+    <tr><td><strong>E4</strong></td><td>Rechazo literal</td><td>Mensaje fijo exacto: «No tengo suficiente información en mi base de conocimiento para responder esa pregunta.» (casos T04/T05)</td></tr>
+    <tr><td><strong>E5</strong></td><td>Fuentes obligatorias</td><td>La respuesta viaja con su lista de fuentes (título, tipo, similitud); la UI las muestra y un giro sin fuentes se considera inválido</td></tr>
+    <tr><td><strong>E6</strong></td><td>Verificación de entidades</td><td><code>validate_answer</code> comprueba que las entidades/cifras citadas aparecen en el contexto; si no, deriva al rechazo</td></tr>
+    <tr><td><strong>E7</strong></td><td>Conteos por SQL</td><td>Las preguntas de catálogo (conteos, listados) se responden con consultas a SQLite, sin generación text</td></tr>
+  </tbody>
+</table>
+<p>Además, el historial que se inyecta en el prompt está recortado, la temperatura es baja y la intención
+se clasifica con el propio modelo local (sin servicios externos).</p>
+
+<!-- ═════════ 11 ═════════ -->
+<h2>11. Seguridad y autenticación</h2>
+<ul>
+  <li><strong>Registro/login:</strong> contraseñas con hash (bcrypt por passlib) y JWT firmado con
+  <code>SECRET_KEY</code> (≥32 caracteres, fuera del repositorio). Hay <code>refresh</code> y
+  <code>logout</code>.</li>
+  <li><strong>Endpoints de negocio:</strong> exigen token Bearer; sin token → <strong>401</strong>
+  (verificado en el smoke test). Cada consulta de historial o de documentos verifica la pertenencia al
+  usuario → un token de otro usuario no ve sus datos (T10/T10b).</li>
+  <li><strong>CORS:</strong> lista explícita de orígenes en <code>CORS_ORIGINS</code>; en el stack Docker
+  la petición pasa por nginx (<code>/api</code>) y no se necesita CORS.</li>
+  <li><strong>Secretos:</strong> nunca se versionan. <code>.env.example</code> documenta cada variable;
+  <code>.gitignore</code> excluye <code>backend/.env</code>, la base de datos y el vectorstore.</li>
+  <li><strong>Servidor sin privilegios</strong> en el contenedor (usuario <code>pony</code>) y
+  <code>HEALTHCHECK</code> configurado.</li>
+</ul>
+
+<h3>Decisión de autenticación (DEC-05) y su riesgo (R-03)</h3>
+<p>El equipo eligió <strong>Keycloak</strong> (recomendado por el enunciado), que quedó implementado con
+un proveedor intercambiable: <code>AUTH_PROVIDER=local|keycloak</code>. Hoy opera en modo
+<code>local</code> con JWT propio porque desplegar Keycloak en free tier con la fecha de entrega
+inmediata añade un servicio de ~512 MB que los free tiers suelen no cubrir. El enunciado lo permite
+expresamente: <em>«pueden emplear otra solución o implementarla por su cuenta»</em>. La configuración de
+Keycloak (realm, cliente, secretos) ya está parametrizada en <code>.env.example</code> para activarse con
+una variable, y el plan alternativo está documentado en <code>docs/decisiones.md</code> §4.</p>
+
+<div class="nota"><strong>Tensión documentada (R-04):</strong> el enunciado dice que «ningún endpoint
+puede quedar expuesto al consumo sin autenticación», pero rutas técnicas como <code>GET /health</code>,
+el preflight <code>OPTIONS</code> de CORS y las propias rutas de registro/login no pueden exigir token
+previo (dos de ellas lo obtienen y las demás no tratan datos de negocio). Se documenta abiertamente aquí
+y se agrupa en <code>docs/matriz-requisitos.md</code> §7: sin token, los endpoints de negocio responden
+401 verificado.</div>
+
+<!-- ═════════ 12 ═════════ -->
+<h2>12. Despliegue</h2>
+<p>Presupuesto: <strong>0 USD</strong> (solo free tiers), tal como exige el enunciado.</p>
+
+<h3>Contenedores (listos y verificados)</h3>
+<pre><code>docker compose up -d
+# backend  -> http://localhost:8010  (FastAPI + semillas + HEALTHCHECK)
+# frontend -> http://localhost:8081  (build estático + nginx con proxy /api)</code></pre>
+<table>
+  <thead><tr><th style="width:30%">Elemento</th><th>Detalle</th></tr></thead>
+  <tbody>
+    <tr><td><code>backend/Dockerfile</code></td><td><code>python:3.12-slim</code>, torch CPU, modelo e5-small horneado en <code>/opt/hf-cache</code> (evita descargas al arrancar), usuario sin privilegios, <code>HEALTHCHECK</code></td></tr>
+    <tr><td><code>frontend/Dockerfile</code></td><td>Multi-stage: <code>node:22-alpine</code> (build) → <code>nginx:1.27-alpine</code> (servido)</td></tr>
+    <tr><td><code>frontend/nginx.conf</code></td><td>Proxy de <code>/api</code> y <code>/health</code> a <code>backend:8000</code></td></tr>
+    <tr><td><code>docker-compose.yml</code></td><td>Puertos 8010/8081 (5173 y 8080 estaban ocupados por otro proyecto), volúmenes <code>backend-data</code> y <code>backend-vector</code>, Ollama del host vía <code>host.docker.internal:11434</code></td></tr>
+  </tbody>
+</table>
+
+<h3>Nube (free tiers)</h3>
+<table>
+  <thead><tr><th style="width:22%">Componente</th><th style="width:26%">Servicio previsto</th><th>Estado</th></tr></thead>
+  <tbody>
+    <tr><td>Frontend</td><td>Vercel (free)</td><td><span class="badge pend">pendiente de publicación</span></td></tr>
+    <tr><td>Backend</td><td>Render free / Hugging Face Spaces (Docker)</td><td><span class="badge pend">pendiente de publicación</span></td></tr>
+    <tr><td>Modelo</td><td>Ollama en el portátil + túnel autenticado</td><td><span class="badge pend">pendiente de configuración</span></td></tr>
+    <tr><td>Repositorio</td><td>GitHub público — <code>github.com/navyri/PonyArchive</code></td><td><span class="badge ok">publicado</span></td></tr>
+  </tbody>
+</table>
+<p><em>Nota de transparencia:</em> esta sección se actualiza con las URLs definitivas en cuanto se complete
+la publicación; el criterio de aprobación es «URL pública accesible» y se mostrará en vivo en la
+demostración.</p>
+
+<!-- ═════════ 13 ═════════ -->
+<h2 class="page-break">13. Evidencias de funcionamiento</h2>
+<table>
+  <thead><tr><th style="width:34%">Evidencia</th><th style="width:24%">Método</th><th>Resultado</th></tr></thead>
+  <tbody>
+    <tr><td>Smoke test automatizado (12 casos)</td><td><code>python scripts/smoke_test.py</code></td><td><span class="badge ok">12/12 OK</span></td></tr>
+    <tr><td>E2E sobre Docker</td><td><code>python scripts/e2e_compose.py</code></td><td><span class="badge ok">TODO CORRECTO</span> (health, registro, importación 243+555, chat con 6 fuentes, rechazo literal, journal, contexto del curso)</td></tr>
+    <tr><td>Recorrido en navegador</td><td>Frontend en dev + capturas</td><td><span class="badge ok">verificado</span> (4 capturas más abajo)</td></tr>
+    <tr><td>Build de frontend</td><td><code>npm run build</code></td><td><span class="badge ok">sin errores</span> (tsc + vite)</td></tr>
+    <tr><td>Imágenes Docker</td><td><code>docker compose build</code></td><td><span class="badge ok">backend 4,24 GB · frontend 74 MB</span></td></tr>
+  </tbody>
+</table>
+
+<h3>Casos del smoke test</h3>
+<table>
+  <thead><tr><th style="width:12%">Caso</th><th>Qué verifica</th></tr></thead>
+  <tbody>
+    <tr><td>/health</td><td>Estado, modelo y fragmentos indexados</td></tr>
+    <tr><td>register</td><td>Alta de usuario → 201 + token</td></tr>
+    <tr><td>401</td><td><code>POST /api/chat</code> sin token → 401</td></tr>
+    <tr><td>T01</td><td>Pregunta factual → respuesta con 6 fuentes y similitudes</td></tr>
+    <tr><td>T04</td><td>Fuera de dominio → rechazo con la frase literal</td></tr>
+    <tr><td>T05</td><td>Consulta sin evidencia → rechazo</td></tr>
+    <tr><td>B04</td><td>Historial aislado por usuario</td></tr>
+    <tr><td>K07/T07</td><td>Carga de documento y pregunta sobre ese documento</td></tr>
+    <tr><td>T10/T10b</td><td>Aislamiento de documentos entre usuarios (búsqueda y listado)</td></tr>
+    <tr><td><strong>T11</strong></td><td>Contexto del curso respondido con la nota como fuente</td></tr>
+  </tbody>
+</table>
+
+<h3>Capturas</h3>
+<figure><img class="fig" src="capturas/chat-fuentes.png" alt="Chat con fuentes">
+<div class="caption">Figura 2. Respuesta con fuentes (título, tipo y similitud).</div></figure>
+<figure><img class="fig" src="capturas/rechazo.png" alt="Rechazo fuera de dominio">
+<div class="caption">Figura 3. Rechazo explícito con la frase literal.</div></figure>
+<figure><img class="fig" src="capturas/documentos.png" alt="Gestión de documentos">
+<div class="caption">Figura 4. Carga y listado de documentos (pestañas Todos/Biblioteca/Míos).</div></figure>
+<figure><img class="fig" src="capturas/journal.png" alt="Friendship Journal">
+<div class="caption">Figura 5. Friendship Journal: consulta temática con fuentes.</div></figure>
+
+<!-- ═════════ 14 ═════════ -->
+<h2 class="page-break">14. Problemas encontrados y conclusiones</h2>
+<h3>Problemas encontrados (y cómo se resolvieron)</h3>
+<table>
+  <thead><tr><th style="width:30%">Problema</th><th>Causa y solución</th></tr></thead>
+  <tbody>
+    <tr><td>Python 3.14 muy nuevo para langgraph/chromadb/sentence-transformers</td><td>Resuelto: instalación conjunta verificada y dependencias fijadas (R-02)</td></tr>
+    <tr><td>qwen3.5 devolvía solo razonamiento vacío</td><td><code>reasoning=False</code> y temperatura baja en el paso de generación (DEC-12)</td></tr>
+    <tr><td>Búsqueda por título inoperante (<code>$contains</code> multi-token en Chroma)</td><td>Filtro por título preprocesado/tolerante en <code>vectorstore.py</code></td></tr>
+    <tr><td>Documento recién subido no recuperable</td><td>Deduplicación <strong>por usuario</strong>: la global descartaba la carga nueva (caso T07)</td></tr>
+    <tr><td>Documento de otro usuario visible como «Tuyo»</td><td>Listado con <code>or_(user_id == usuario, user_id IS NULL/-1)</code>; caso T10b</td></tr>
+    <tr><td>Pregunta sobre documento propio rechazada</td><td>La intención <code>fuera_de_dominio</code> ahora <strong>recupera antes de decidir</strong> y acepta evidencia de documentos subidos o notas de contexto (caso T11)</td></tr>
+    <tr><td>La semilla no llegaba al contenedor</td><td>El volumen <code>/app/data</code> enmascaraba la carpeta de la imagen → se copia a <code>/app/seed</code> con <code>PONYARCHIVE_SEED_DIR</code> (DEC-16)</td></tr>
+    <tr><td>Búsqueda complementaria perdida de forma intermitente</td><td>Cuando el clasificador proponía un filtro que llenaba el <code>top_k</code> (243 episodios) se saltaba la búsqueda general y se perdía la evidencia → ahora se hace <strong>siempre</strong> que haya filtros</td></tr>
+    <tr><td>Índice vectorial en estado inconsistente tras reinicios múltiples del contenedor</td><td>Reconstrucción limpia de volúmenes (<code>docker compose down -v</code> + importación); E2E verificado después</td></tr>
+    <tr><td>Riesgo de persistencia en Render free (R-06)</td><td>Volúmenes persistentes o reindexación al arrancar; evaluación en curso</td></tr>
+  </tbody>
+</table>
+
+<h3>Conclusiones</h3>
+<ol>
+  <li>El requisito central — <strong>respuestas fundamentadas y rechazo honesto</strong> — se cumple con
+  7 estrategias verificables y 12 pruebas automatizadas, incluido el caso de conocimiento de contexto
+  exigido por el profesor.</li>
+  <li>LangGraph aportó estructura real al flujo: las rutas condicionales (catálogo, suficiencia,
+  validación) están expresadas como aristas del grafo y son auditables en código, sin constructores
+  visuales.</li>
+  <li>Un modelo local de 4B es suficiente cuando el RAG hace el trabajo pesado: la calidad de la
+  respuesta depende más de la recuperación y del prompt que del tamaño del modelo.</li>
+  <li>El punto más delicado del proyecto es el <strong>despliegue en free tier con el modelo local</strong>
+  (DEC-06/R-06): el túnel al Ollama del portátil es la solución 0 USD elegida y se muestra en la
+  demostración.</li>
+  <li>Trabajo futuro: activar Keycloak completo si el free tier lo sostiene (§11), búsqueda híbrida
+  léxica+semántica y evaluación sistemática de la calidad de las respuestas.</li>
+</ol>
+
+<div class="nota" style="margin-top:20px">
+  <strong>Atribuciones y licencias.</strong> Código bajo licencia MIT (archivo <code>LICENSE</code>).
+  Datos de la Pony API bajo <strong>CC BY-SA 3.0</strong> — <em>Pony Archive (ponyapi.net)</em>, atribución
+  obligatoria. Las fichas narrativas y las etiquetas temáticas son redacción propia del proyecto.
+  Este documento y las diapositivas lo integra Mariana Lemus Esguerra.
+</div>
+
+</body>
+</html>
