@@ -115,7 +115,11 @@
 
 | ID | Estado | Evidencia | Pendiente o limitación |
 |----|--------|-----------|------------------------|
-| E01–E09 | [ ] | — | Sin iniciar (repo GitHub, doc técnico PDF, diapositivas 8–12, guion de demo) |
+| E01 | [x] | Repo público **https://github.com/navyri/PonyArchive** (push 2026-10-17T18:51Z, 7 commits con fechas reales, 103 ficheros; sin `.env`/`.db`/`vectorstore` de datos; nombre completo del integrante solo en `docs/`) | — |
+| E02 | [x] | `docs/documento-tecnico.pdf` — 19 páginas, los 14 apartados del §5.2, con diagrama y 5 capturas (fuente HTML incluida) | Sección 12 (URLs de nube) se actualizará tras el despliegue |
+| E03 | [ ] | — | Demo 7–10 min presencial: guion pendiente de preparar |
+| E04 | [x] | `docs/presentacion.pdf` — 9 láminas siguiendo la secuencia del §5.4 (portada, problema, arquitectura, tecnologías, agente, base vectorial, seguridad, demostración, conclusiones) | — |
+| E05–E09 | [ ] | — | Guion de demo, README final con URLs de nube, atribuciones revisadas |
 
 ---
 

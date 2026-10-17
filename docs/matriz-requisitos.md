@@ -15,7 +15,7 @@ Leyenda de tipo: **[O]** requisito obligatorio del profesor · **[D]** decisión
 | M5 | Base vectorial + carga de documentos operativa | ChromaDB + pipeline | Subir archivo → indexar → consultar | Demo en vivo | [O] | [ ] |
 | M6 | Respuestas fundamentadas en el contexto recuperado | Nodo de generación | Preguntas T01/T02 con fuente verificable | Salida con fuentes | [O] | [ ] |
 | M7 | Rechazo explícito sin información suficiente | Nodo de rechazo | Preguntas T04/T05 | Mensaje literal del §3.1 | [O] | [ ] |
-| M8 | Despliegue en la nube + repositorio documentado | Render/Vercel + GitHub | URL pública accesible | URLs en doc técnico §12 | [O] | [ ] |
+| M8 | Despliegue en la nube + repositorio documentado | Render/Vercel + GitHub | URL pública accesible | URLs en doc técnico §12 | [O] | [~] repo público listo (`github.com/navyri/PonyArchive`); falta despliegue web |
 
 ## 2. Requisitos funcionales (§2)
 
