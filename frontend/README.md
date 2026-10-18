@@ -1,6 +1,6 @@
 # PonyArchive · Frontend (React + Vite + TypeScript)
 
-Interfaz de PonyArchive: chat con fuentes, gestión de documentos, historial y Friendship Journal.
+Interfaz de PonyArchive: chat con fuentes, gestión de documentos e historial.
 
 ## Arranque
 
@@ -18,7 +18,6 @@ La URL de la API se configura en `frontend/.env` con `VITE_API_URL`
 |---|---|
 | `src/pages/ChatPage.tsx` | Preguntas al agente, respuesta con fuentes (título, tipo, similitud), rechazo destacado, historial lateral |
 | `src/pages/DocumentsPage.tsx` | Subida (.txt/.md), listado con filtros, borrado propio |
-| `src/pages/JournalPage.tsx` | Friendship Journal: consulta por tema y comparación |
 | `src/pages/LoginPage.tsx` | Registro e inicio de sesión |
 | `src/api.ts` | Cliente HTTP con Bearer y renovación automática del token (401 → refresh) |
 | `src/auth.tsx` | Contexto de sesión (JWT en `localStorage`) |

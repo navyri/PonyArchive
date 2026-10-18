@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../api'
 import type { DocumentItem } from '../types'
-
 const TYPE_LABEL: Record<string, string> = {
   episodio: 'Episodio',
   personaje: 'Personaje',
@@ -13,6 +12,7 @@ const TYPE_LABEL: Record<string, string> = {
 /** Carga y listado de documentos (requisito §2.4: extracción → fragmentación → embeddings). */
 export default function DocumentsPage() {
   const [docs, setDocs] = useState<DocumentItem[]>([])
+  const [total, setTotal] = useState(0)
   const [scope, setScope] = useState<'all' | 'mine' | 'shared'>('all')
   const [filter, setFilter] = useState('')
   const [busy, setBusy] = useState(false)
@@ -23,7 +23,10 @@ export default function DocumentsPage() {
   const load = useCallback(() => {
     api
       .documents(scope)
-      .then(setDocs)
+      .then((page) => {
+        setDocs(page.items)
+        setTotal(page.total)
+      })
       .catch((err) => setError(err instanceof Error ? err.message : 'No se pudo cargar la lista.'))
   }, [scope])
 
@@ -64,24 +67,28 @@ export default function DocumentsPage() {
     <div className="page">
       <h1>Documentos</h1>
       <p className="muted">
-        La biblioteca compartida (personajes, episodios y fichas) procede de Pony API y de la
-        redacción propia del equipo. Tus cargas son privadas: solo tú puedes consultarlas y borrarlas.
+        La biblioteca compartida (personajes, episodios y fichas) procede de Pony API, de la
+        wiki de Fandom (mlp.fandom.com, sinopsis bajo licencia CC BY-SA) y de la redacción
+        propia del equipo. Tus cargas son privadas: solo tú puedes consultarlas y borrarlas.
       </p>
 
       <div className="card">
         <h3>Cargar documento (.txt o .md, máx. 20 MB)</h3>
         <div className="upload-row">
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".txt,.md,text/plain,text/markdown"
-            disabled={busy}
-            onChange={(e) => {
-              const f = e.target.files?.[0]
-              if (f) void onUpload(f)
-            }}
-          />
-          {busy && <span className="muted">Indexando (extracción → fragmentación → embeddings)…</span>}
+          <label className="file-upload">
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".txt,.md,text/plain,text/markdown"
+              disabled={busy}
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) void onUpload(f)
+              }}
+            />
+            <span className="file-upload-label">▸ Elegir archivo</span>
+          </label>
+          {busy && <span className="muted">Indexando (extracción → fragmentación → embeddings)</span>}
         </div>
         <p className="muted small">
           Una vez indexado, puedes preguntar por su contenido en el chat.
@@ -112,7 +119,7 @@ export default function DocumentsPage() {
         </div>
 
         <p className="muted small">
-          Mostrando {visible.length} de {docs.length} (máx. 300 por consulta).
+          Mostrando {visible.length} de {total} documentos indexados.
         </p>
 
         <div className="table-wrap">

@@ -4,7 +4,7 @@
  * - Si el access token caduca (401), intenta UNA vez refrescarlo y reintenta.
  * - Centraliza los mensajes de error en español para la interfaz.
  */
-import type { ChatResponse, ConversationDetail, ConversationSummary, DocumentItem, Health, TokenResponse, UploadResponse, User } from './types'
+import type { ChatResponse, ConversationDetail, ConversationSummary, DocumentPage, Health, TokenResponse, UploadResponse, User } from './types'
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://127.0.0.1:8000'
 
@@ -114,8 +114,8 @@ export const api = {
   deleteConversation: (id: number) => request<void>(`/api/chat/conversations/${id}`, { method: 'DELETE' }),
 
   // --- documentos ---
-  documents: (scope: 'all' | 'mine' | 'shared' = 'all') =>
-    request<DocumentItem[]>(`/api/documents?scope=${scope}`),
+  documents: (scope: 'all' | 'mine' | 'shared' = 'all', limit = 1000, offset = 0) =>
+    request<DocumentPage>(`/api/documents?scope=${scope}&limit=${limit}&offset=${offset}`),
   upload: async (file: File) => {
     const form = new FormData()
     form.append('file', file)
@@ -124,16 +124,4 @@ export const api = {
   },
   deleteDocument: (id: number) => request<void>(`/api/documents/${id}`, { method: 'DELETE' }),
 
-  // --- friendship journal ---
-  themes: () => request<{ themes: string[] }>('/api/journal/themes'),
-  journalQuery: (theme: string, question: string | null) =>
-    request<{ theme: string; answer: string; sources: ChatResponse['sources']; refused: boolean }>(
-      '/api/journal/query',
-      jsonInit('POST', { theme, question: question || null }),
-    ),
-  compare: (item_a: string, item_b: string) =>
-    request<{ answer: string; sources: ChatResponse['sources']; refused: boolean }>(
-      '/api/journal/compare',
-      jsonInit('POST', { item_a, item_b }),
-    ),
 }

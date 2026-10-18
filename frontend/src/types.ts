@@ -69,6 +69,13 @@ export interface DocumentItem {
   created_at: string
 }
 
+export interface DocumentPage {
+  items: DocumentItem[]
+  total: number
+  limit: number
+  offset: number
+}
+
 export interface UploadResponse {
   message: string
   document: DocumentItem

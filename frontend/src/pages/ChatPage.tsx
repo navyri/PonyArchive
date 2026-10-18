@@ -15,11 +15,17 @@ const SUGGESTIONS = [
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [pendingKeys, setPendingKeys] = useState<(number | 'new')[]>([])
   const [error, setError] = useState<string | null>(null)
   const [conversationId, setConversationId] = useState<number | null>(null)
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const bottomRef = useRef<HTMLDivElement>(null)
+
+  // Conversación visible y las que tienen consulta en vuelo (para no mezclar hilos)
+  const viewKey = conversationId ?? 'new'
+  const busyHere = pendingKeys.includes(viewKey)
+  const viewRef = useRef(viewKey)
+  viewRef.current = viewKey
 
   const refreshConversations = useCallback(() => {
     api
@@ -32,27 +38,32 @@ export default function ChatPage() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, busy])
+  }, [messages, busyHere])
 
   async function send(question: string) {
     const text = question.trim()
-    if (!text || busy) return
+    if (!text || busyHere) return
+    const target = viewKey
     setError(null)
-    setBusy(true)
+    setPendingKeys((prev) => [...prev, target])
     setInput('')
     setMessages((prev) => [...prev, { role: 'user', content: text, sources: [], refused: false }])
     try {
       const res = await api.ask(text, conversationId)
-      setConversationId(res.conversation_id ?? conversationId)
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: res.answer,
-          sources: res.sources,
-          refused: res.refused,
-        },
-      ])
+      // La respuesta solo se cuelga si la vista sigue siendo la conversación de origen
+      if (viewRef.current === target) {
+        setConversationId(res.conversation_id ?? conversationId)
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: res.answer,
+            sources: res.sources,
+            refused: res.refused,
+          },
+        ])
+        setError(null)
+      }
       refreshConversations()
     } catch (err) {
       const msg =
@@ -61,12 +72,14 @@ export default function ChatPage() {
           : err instanceof Error
             ? err.message
             : 'No se pudo enviar la pregunta.'
-      setError(msg)
-      // retira el mensaje de usuario para reintentar sin duplicar
-      setMessages((prev) => prev.slice(0, -1))
-      setInput(text)
+      if (viewRef.current === target) {
+        setError(msg)
+        // retira el mensaje de usuario para reintentar sin duplicar
+        setMessages((prev) => prev.slice(0, -1))
+        setInput(text)
+      }
     } finally {
-      setBusy(false)
+      setPendingKeys((prev) => prev.filter((k) => k !== target))
     }
   }
 
@@ -173,10 +186,10 @@ export default function ChatPage() {
             ),
           )}
 
-          {busy && (
+          {busyHere && (
             <div className="msg assistant">
               <div className="bubble loading">
-                <span className="dots" /> Consultando la base de conocimiento…
+                <span className="shimmer">Consultando la base de conocimiento</span>
               </div>
             </div>
           )}
@@ -193,10 +206,10 @@ export default function ChatPage() {
             placeholder="Escribe tu pregunta (Enter para enviar, Shift+Enter para nueva línea)"
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKeyDown}
-            disabled={busy}
+            disabled={busyHere}
           />
-          <button className="btn primary" type="submit" disabled={busy || !input.trim()}>
-            {busy ? '…' : 'Enviar'}
+          <button className="btn primary" type="submit" disabled={busyHere || !input.trim()}>
+            {busyHere ? '…' : 'Enviar'}
           </button>
         </form>
       </section>

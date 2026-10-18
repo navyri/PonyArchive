@@ -58,13 +58,14 @@ const TYPE_LABEL: Record<string, string> = {
   cancion: 'Canción',
 }
 
-/** Lista de fuentes recuperadas (estrategia anti-alucinación E5): título, tipo y similitud. */
+/** Lista de fuentes recuperadas (estrategia anti-alucinación E5): título, tipo y similitud.
+ *  Desplegable y plegada por defecto para no abarcar visualmente la respuesta. */
 export function SourceList({ sources }: { sources: Source[] }) {
   if (!sources || sources.length === 0) return null
   return (
-    <details className="sources" open>
+    <details className="sources">
       <summary>
-        Fuentes ({sources.length})
+        <span className="sources-caret">▸</span> Fuentes ({sources.length})
       </summary>
       <ol>
         {sources.map((s, i) => (

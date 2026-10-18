@@ -7,7 +7,6 @@ import type { Health } from './types'
 import LoginPage from './pages/LoginPage'
 import ChatPage from './pages/ChatPage'
 import DocumentsPage from './pages/DocumentsPage'
-import JournalPage from './pages/JournalPage'
 
 function Loading() {
   return <div className="center-screen">Cargando PonyArchive…</div>
@@ -22,7 +21,6 @@ function ProtectedRoutes() {
     <Routes>
       <Route path="/" element={<ChatPage />} />
       <Route path="/documentos" element={<DocumentsPage />} />
-      <Route path="/journal" element={<JournalPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
@@ -83,11 +81,6 @@ export default function App() {
 
   return (
     <div className="app">
-      <div className="aurora" aria-hidden="true">
-        <span className="orb orb-a" />
-        <span className="orb orb-b" />
-        <span className="orb orb-c" />
-      </div>
       <div className="cosmos" aria-hidden="true">
         {SPARKLES.map((sp, i) => (
           <i
@@ -107,40 +100,46 @@ export default function App() {
       </div>
 
       <header className="topbar">
-        <div className="brand">
-          <span className="brand-mark">★</span> PonyArchive
-          <span className="brand-sub">biblioteca inteligente · MLP: Friendship Is Magic</span>
+        <div className="titlebar">
+          <div className="dots"><i className="a" /><i className="m" /><i className="o" /></div>
+          <span className="title">PONYARCHIVE.EXE</span>
+          <span className="path">/biblioteca / documentos</span>
         </div>
+        <div className="topbar-row">
+          <div className="brand">
+            <span className="brand-mark">✦</span> PonyArchive
+            <span className="brand-sub">biblioteca inteligente · MLP: Friendship Is Magic</span>
+          </div>
 
-        {user && (
-          <nav className="nav">
-            <NavLink to="/" end>
-              Chat
-            </NavLink>
-            <NavLink to="/documentos">Documentos</NavLink>
-            <NavLink to="/journal">Friendship Journal</NavLink>
-          </nav>
-        )}
-
-        <div className="topbar-right">
-          {health && (
-            <span
-              className={`pill ${health.status === 'ok' ? 'ok' : 'bad'}`}
-              title={`Modelo: ${health.model} · Auth: ${health.auth_provider} · Fragmentos: ${health.chunks_indexados}`}
-            >
-              {health.status === 'ok' ? 'API OK' : 'API caída'} · {health.chunks_indexados ?? '—'} frag.
-            </span>
-          )}
           {user && (
-            <>
-              <span className="user-email" title={user.email}>
-                {user.display_name}
-              </span>
-              <button className="btn ghost" onClick={() => void logout()}>
-                Salir
-              </button>
-            </>
+            <nav className="nav">
+              <NavLink to="/" end>
+                Chat
+              </NavLink>
+              <NavLink to="/documentos">Documentos</NavLink>
+            </nav>
           )}
+
+          <div className="topbar-right">
+            {health && (
+              <span
+                className={`pill ${health.status === 'ok' ? 'ok' : 'bad'}`}
+                title={`Modelo: ${health.model} · Auth: ${health.auth_provider} · Fragmentos: ${health.chunks_indexados}`}
+              >
+                {health.status === 'ok' ? 'API OK' : 'API caída'} · {health.chunks_indexados ?? '—'} frag.
+              </span>
+            )}
+            {user && (
+              <>
+                <span className="user-email" title={user.email}>
+                  {user.display_name}
+                </span>
+                <button className="btn ghost" onClick={() => void logout()}>
+                  Salir
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </header>
 

@@ -31,74 +31,78 @@ export default function LoginPage() {
   return (
     <div className="auth-wrap">
       <form className="card auth-card" onSubmit={onSubmit}>
-        <h1>
-          <span className="brand-mark">★</span> PonyArchive
-        </h1>
-        <p className="muted">
-          Pregunta por la biblioteca de <em>My Little Pony: Friendship Is Magic</em> y consulta el
-          Friendship Journal. Tus conversaciones y documentos son privados.
-        </p>
-
-        <div className="tabs">
-          <button
-            type="button"
-            className={mode === 'login' ? 'tab active' : 'tab'}
-            onClick={() => setMode('login')}
-          >
-            Iniciar sesión
-          </button>
-          <button
-            type="button"
-            className={mode === 'register' ? 'tab active' : 'tab'}
-            onClick={() => setMode('register')}
-          >
-            Crear cuenta
-          </button>
+        <div className="auth-titlebar">
+          <div className="dots"><i className="a" /><i className="m" /><i className="o" /></div>
+          <span className="t">PONYARCHIVE.EXE</span>
+          <span className="p">/acceso</span>
         </div>
+        <div className="auth-body">
+          <h1>PONYARCHIVE</h1>
+          <p className="muted small">
+            Biblioteca inteligente de My Little Pony: Friendship Is Magic. Tus conversaciones y documentos son privados.
+          </p>
 
-        <label className="field">
-          Correo electrónico
-          <input
-            type="email"
-            value={email}
-            required
-            autoComplete="email"
-            placeholder="tu@correo.com"
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </label>
+          <div className="tabs">
+            <button
+              type="button"
+              className={mode === 'login' ? 'tab active' : 'tab'}
+              onClick={() => setMode('login')}
+            >
+              Iniciar sesión
+            </button>
+            <button
+              type="button"
+              className={mode === 'register' ? 'tab active' : 'tab'}
+              onClick={() => setMode('register')}
+            >
+              Crear cuenta
+            </button>
+          </div>
 
-        {mode === 'register' && (
           <label className="field">
-            Nombre visible (opcional)
+            Correo electrónico
             <input
-              type="text"
-              value={displayName}
-              maxLength={120}
-              placeholder="Cómo quieres que te llame la app"
-              onChange={(e) => setDisplayName(e.target.value)}
+              type="email"
+              value={email}
+              required
+              autoComplete="email"
+              placeholder="tu@correo.com"
+              onChange={(e) => setEmail(e.target.value)}
             />
           </label>
-        )}
 
-        <label className="field">
-          Contraseña
-          <input
-            type="password"
-            value={password}
-            required
-            minLength={6}
-            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-            placeholder="mínimo 6 caracteres"
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </label>
+          {mode === 'register' && (
+            <label className="field">
+              Nombre visible (opcional)
+              <input
+                type="text"
+                value={displayName}
+                maxLength={120}
+                placeholder="Cómo quieres que te llame la app"
+                onChange={(e) => setDisplayName(e.target.value)}
+              />
+            </label>
+          )}
 
-        {error && <p className="error-box">{error}</p>}
+          <label className="field">
+            Contraseña
+            <input
+              type="password"
+              value={password}
+              required
+              minLength={6}
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              placeholder="mínimo 6 caracteres"
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </label>
 
-        <button className="btn primary block" type="submit" disabled={busy}>
-          {busy ? 'Un momento…' : mode === 'login' ? 'Entrar' : 'Crear cuenta'}
-        </button>
+          {error && <p className="error-box">{error}</p>}
+
+          <button className="btn primary block" type="submit" disabled={busy}>
+            {busy ? 'Un momento…' : mode === 'login' ? 'Entrar' : 'Crear cuenta'}
+          </button>
+        </div>
       </form>
     </div>
   )
