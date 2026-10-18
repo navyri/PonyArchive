@@ -157,15 +157,17 @@ def main() -> None:
     h_otro = {"Authorization": f"Bearer {token_otro}"}
     r_all = httpx.get(f"{BASE}/api/documents?scope=all", headers=h_otro, timeout=60).json()
     r_mine = httpx.get(f"{BASE}/api/documents?scope=mine", headers=h_otro, timeout=60).json()
-    titulos_listados = [d.get("title", "") for d in r_all]
-    titulos_mios = [d.get("title", "") for d in r_mine]
+    items_all = r_all.get("items", [])
+    items_mine = r_mine.get("items", [])
+    titulos_listados = [d.get("title", "") for d in items_all]
+    titulos_mios = [d.get("title", "") for d in items_mine]
     oculto = not any("prueba_zecora" in t for t in titulos_listados)
     oculto_en_mios = not any("prueba_zecora" in t for t in titulos_mios)
     results.append(
         ("listado aislado (T10b)",
          oculto and oculto_en_mios,
-         f"scope=all: {len(r_all)} docs, 'prueba_zecora' visible={not oculto} | "
-         f"scope=mine: {len(r_mine)} docs, visible={not oculto_en_mios}")
+         f"scope=all: {len(items_all)} docs, 'prueba_zecora' visible={not oculto} | "
+         f"scope=mine: {len(items_mine)} docs, visible={not oculto_en_mios}")
     )
 
     # 10. Contexto del curso (requisito del profesor: DEC-14, caso T11)

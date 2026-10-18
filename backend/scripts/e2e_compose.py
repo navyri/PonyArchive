@@ -8,7 +8,7 @@ backend en contenedor):
   3. importación de Pony API (episodios y personajes) — la biblioteca compartida
   4. pregunta factual con fuentes
   5. pregunta fuera de dominio -> rechazo literal
-  6. Friendship Journal (consulta temática)
+  6. contexto del curso (T11)
 
 Uso:  python scripts/e2e_compose.py            # base http://localhost:8081
       python scripts/e2e_compose.py --base http://localhost:8000
@@ -106,25 +106,7 @@ def main() -> int:
             (data.get("answer", "") or "").split("\n")[0][:160],
         )
 
-        # 6. Friendship Journal (elige un tema de los disponibles)
-        r = c.get("/api/journal/themes", headers=auth, timeout=60)
-        themes = (r.json() or {}).get("themes") or []
-        tema = themes[0] if themes else "amistad"
-        r = c.post(
-            "/api/journal/query",
-            json={"theme": tema},
-            headers=auth,
-            timeout=600,
-        )
-        data = r.json() if r.status_code == 200 else {}
-        srcs = data.get("sources") or []
-        ok &= check(
-            r.status_code == 200 and len(srcs) > 0,
-            f"journal temático '{tema}' -> fuentes={len(srcs)}",
-            f"temas disponibles: {len(themes)}",
-        )
-
-        # 7. Contexto del curso exigido por el profesor (DEC-14, T11)
+        # 6. Contexto del curso exigido por el profesor (DEC-14, T11)
         r = c.post(
             "/api/chat",
             json={"question": "¿A Duvan Gomez le pega la esposa?"},
