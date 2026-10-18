@@ -1,14 +1,8 @@
 """Endpoints de autenticación.
 
-Clasificación de rutas (documentada en docs/matriz-requisitos.md §7, pendiente de
-consulta al profesor por la redacción literal del §2.1):
-
-  * RUTAS DE AUTENTICACIÓN (este módulo): no exigen token previo porque son el
-    mecanismo para obtenerlo. Se protegen con HTTPS, validación de entrada,
-    hashing bcrypt y, en producción, limitación de intentos.
-  * RUTAS DE INFRAESTRUCTURA: /health (sin datos de negocio).
-  * RUTAS DE NEGOCIO: todas las demás; exigen Bearer y verifican pertenencia.
-"""
+Rutas sin token previo por definición: son el mecanismo para obtenerlo. Se
+protegen con HTTPS, validación de entrada, hashing bcrypt y limitación de
+intentos. El resto de la API exige Bearer token."""
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
@@ -117,8 +111,7 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db)):
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 def logout():
-    """Los JWT son stateless: el cliente descarta el token.
-    Se documenta como decisión de diseño en el documento técnico §11."""
+    """Los JWT son stateless: el cliente descarta el token."""
     return None
 
 

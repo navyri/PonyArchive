@@ -1,8 +1,6 @@
 """Configuración central de PonyArchive.
 
-Todas las variables se leen del entorno (o de un archivo .env). Ningún valor
-secreto está escrito aquí: ver .env.example para la lista completa de variables.
-"""
+Variables leídas del entorno o de backend/.env (ver .env.example)."""
 from functools import lru_cache
 from pathlib import Path
 
@@ -43,16 +41,25 @@ class Settings(BaseSettings):
     llm_temperature: float = 0.0      # 0 = menos inventiva, más fiel al contexto
     llm_max_tokens: int = 700
 
-    # --- Embeddings locales ---
+    embeddings_provider: str = "local"   # local | openai
+    llm_provider: str = "ollama"         # ollama | openai
+    vector_provider: str = "chroma"      # chroma | qdrant
+
     embedding_model: str = "intfloat/multilingual-e5-small"
 
-    # --- Base de datos vectorial ---
+    openai_api_key: str = ""
+    openai_chat_model: str = "gpt-4o-mini"
+    openai_embedding_model: str = "text-embedding-3-small"
+    openai_embedding_dims: int = 1536
+
+    qdrant_url: str = ""
+    qdrant_api_key: str = ""
+    qdrant_collection: str = "ponyarchive"
+
     vector_dir: str = str(BACKEND_DIR / "vectorstore")
     collection_name: str = "ponyarchive"
     top_k: int = 6
-    # Umbral mínimo de similitud coseno para aceptar un fragmento (estrategia anti-alucinación 1).
-    # Calibrado con pruebas reales; ver docs/pruebas.md
-    similarity_threshold: float = 0.62
+    similarity_threshold: float = 0.62  # anti-alucinación E1, calibrado
 
     # --- Persistencia relacional ---
     data_dir: str = str(BACKEND_DIR / "data")
@@ -65,6 +72,7 @@ class Settings(BaseSettings):
 
     # --- Integración externa ---
     pony_api_url: str = "https://ponyapi.net/v1"
+    import_on_start: bool = False  # importa el catálogo al arrancar si la base está vacía
 
     # --- CORS (lista de orígenes permitidos, separados por coma) ---
     # 5173: puerto habitual de Vite; 5174: usado cuando el 5173 lo ocupa otro contenedor.

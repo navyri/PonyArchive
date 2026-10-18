@@ -1,11 +1,7 @@
 """Seguridad: hash de contraseñas, emisión y validación de tokens.
 
-Soporta los dos modos declarados en DEC-05:
-  * "local"    -> JWT propio (HS256) con usuarios en la base de datos.
-  * "keycloak" -> tokens emitidos por Keycloak, verificados contra su JWKS.
-
-En ambos casos el resultado para el resto de la API es idéntico: un usuario.
-"""
+Dos modos según AUTH_PROVIDER: "local" (JWT propio HS256 con usuarios en base
+de datos) o "keycloak" (tokens verificados contra su JWKS)."""
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
@@ -23,8 +19,7 @@ settings = get_settings()
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
-# ----------------------------- Contraseñas -----------------------------
-
+# Contraseñas
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
@@ -38,7 +33,7 @@ def verify_password(password: str, password_hash: str) -> bool:
         return False
 
 
-# ----------------------------- Tokens locales -----------------------------
+# Tokens locales
 
 def create_access_token(user: User) -> str:
     now = datetime.now(timezone.utc)
@@ -64,7 +59,7 @@ def create_refresh_token(user: User) -> str:
     return jwt.encode(payload, settings.secret_key, algorithm=settings.algorithm)
 
 
-# ----------------------------- Validación -----------------------------
+# Validación
 
 def _decode_local(token: str) -> dict:
     return jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])

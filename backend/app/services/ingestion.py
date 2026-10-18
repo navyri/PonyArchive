@@ -1,8 +1,5 @@
-"""Pipeline de carga y procesamiento de documentos (§2.4 del PDF):
-
-1. Recibir el archivo  2. Extraer el contenido  3. Dividir en fragmentos
-4. Generar embeddings  5. Almacenar en la base vectorial  6. Confirmar al usuario
-"""
+"""Pipeline de carga de documentos: extracción, fragmentación, embeddings e
+indexación en la base vectorial."""
 from __future__ import annotations
 
 import hashlib

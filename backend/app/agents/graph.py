@@ -1,18 +1,5 @@
-"""Grafo de LangGraph de PonyArchive — flujo real construido con código.
-
-    Pregunta → Validación de intención y filtros → Recuperación de contexto
-             → Evaluación de suficiencia → Generación sustentada o rechazo
-             → Validación de la respuesta (groundedness) → Persistencia del historial
-
-Estrategias de control de alucinación implementadas (§3.4 pide mínimo 2):
-  E1 Umbral mínimo de similitud para aceptar fragmentos           (nodo evaluate_sufficiency)
-  E2 Nodo dedicado que evalúa si el contexto es suficiente        (nodo evaluate_sufficiency)
-  E3 Prompt que obliga a responder solo con el contexto           (nodo generate)
-  E4 Respuesta explícita de rechazo con el mensaje del enunciado  (nodo reject)
-  E5 Presentación de las fuentes con su fragmento y similitud     (estado sources)
-  E6 Verificación de entidades de la respuesta contra el contexto (nodo validate_answer)
-  E7 Consultas de conteo/catálogo vía SQL, nunca por similitud    (nodo catalog_query)
-"""
+"""Grafo de LangGraph: validación de intención, recuperación, evaluación de
+suficiencia, generación o rechazo, validación de respuesta e historial."""
 from __future__ import annotations
 
 import json
@@ -29,7 +16,7 @@ from app.models import Conversation, Document, Message
 from app.services.embeddings import embed_query
 from app.services.llm import get_llm
 from app.services.themes import theme_from_query
-from app.services.vectorstore import search
+from app.services.vectorstore import fetch_documents, search
 
 REFUSAL_MESSAGE = (
     "No tengo suficiente información en mi base de conocimiento para responder esa pregunta."
@@ -39,6 +26,37 @@ SUGGESTION = "Puedes subir documentos relacionados con ese tema y lo tendré en 
 # Bonus de similitud para los fragmentos de los documentos que subió el usuario
 BONUS_PROPIO = 0.05
 
+# Preguntas sobre el propio agente: respuesta fija, sin LLM ni recuperación
+META_PATTERNS = (
+    r"qu[eé] (tipo de )?preguntas",
+    r"qu[eé] puedes (contestar|responder|hacer|saber)",
+    r"para qu[eé] sirves",
+    r"qui[eé]n eres",
+    r"c[oó]mo funcionas",
+    r"cu[aá]l es tu (funci[oó]n|capacidad|prop[oó]sito|alcance)",
+    r"en qu[eé] me puedes (ayudar|servir)",
+)
+
+# Recuento de temporadas: pregunta estructurada del corpus, resuelta con E7
+SEASON_COUNT_RE = re.compile(r"cu[aá]nt(as|os)[^.?!]{0,60}temporada", re.IGNORECASE)
+
+AGENT_SCOPE = """Soy PonyArchive, el agente de esta biblioteca sobre My Little Pony: Friendship Is Magic
+(la generación G4, 2010-2019). Uso únicamente la documentación indexada, así que puedo
+responder sobre:
+
+- Episodios de la serie: trama, personajes que aparecen, canciones y cuántos episodios
+  documenta la biblioteca por temporada.
+- Personajes de G4: quiénes son, su rol y sus relaciones con otros personajes.
+- Fichas narrativas de la biblioteca, con temas como la amistad, la confianza o la
+  generosidad.
+- Notas de contexto del curso (p. ej. información sobre el profesor Duvan Gomez) y los
+  documentos que subas a tu biblioteca.
+
+También puedo comparar personajes o episodios entre sí, y decir cuántos episodios,
+personajes u otros documentos hay indexados. Todo lo que respondo sale de esos
+documentos: si la pregunta está fuera de ese alcance, lo digo explícitamente en lugar
+de rellenar con conocimiento general."""
+
 INTENT_PROMPT = """Eres el clasificador de intenciones de PonyArchive, una biblioteca sobre
 My Little Pony: Friendship Is Magic. La biblioteca contiene episodios, personajes, canciones,
 fichas narrativas propias, documentos subidos por el usuario y notas de contexto del curso
@@ -46,7 +64,7 @@ fichas narrativas propias, documentos subidos por el usuario y notas de contexto
 Clasifica la pregunta del usuario y extráe filtros.
 
 Responde SOLO con un objeto JSON exactamente con esta forma:
-{{"intent": "factual|tematica|comparacion|catalogo|fuera_de_dominio|ambigua",
+{{"intent": "factual|tematica|comparacion|catalogo|meta|fuera_de_dominio|ambigua",
   "tema": "una etiqueta entre confianza, celos, reconciliación, trabajo en equipo, amistad,
            honestidad, responsabilidad, liderazgo, valentía, generosidad, paciencia o null",
   "titulo": "nombre propio citado (episodio, personaje o canción) que la pregunta quiera acotar, o null",
@@ -55,7 +73,10 @@ Responde SOLO con un objeto JSON exactamente con esta forma:
   "aclaracion": "si la pregunta es ambigua, una pregunta corta para aclararla; si no, null"}}
 
 Reglas:
-- "catalogo" solo si pide contar o enumerar registros (ej. ¿cuántos episodios hay?).
+- "catalogo" solo si pide contar o enumerar registros (ej. ¿cuántos episodios hay?, ¿cuántas
+  temporadas se documentan?, ¿cuántos capítulos tiene la temporada 3?).
+- "meta" si pregunta por el propio agente: qué puede o no responder, qué tipo de preguntas
+  contesta, quién es o cómo funciona.
 - "fuera_de_dominio" si no guarda relación con la serie, sus personajes, sus temas NI con
   los documentos de la biblioteca (incluidos los archivos que el usuario haya subido y las
   notas de contexto del curso): una pregunta sobre un documento de la biblioteca NO es
@@ -87,8 +108,6 @@ CONTEXTO DOCUMENTAL:
 PREGUNTA DEL USUARIO:
 {question}"""
 
-
-# ---------------------------------------------------------------- utilidades
 
 def _parse_json(text: str) -> dict:
     """Extrae el primer objeto JSON de la respuesta del modelo."""
@@ -139,8 +158,6 @@ def _fuzzy_contains(haystack: str, needle: str) -> bool:
     return norm(needle) in norm(haystack)
 
 
-# ---------------------------------------------------------------- nodos
-
 def validate_intent(state: AgentState) -> dict:
     """Nodo 2 del flujo del enunciado: validar la intención de la pregunta."""
     question = state["question"]
@@ -152,6 +169,19 @@ def validate_intent(state: AgentState) -> dict:
         "elementos": [],
         "aclaracion": None,
     }
+
+    # Detección determinista de preguntas sobre el propio agente (E7): evita que el
+    # clasificador pequeño las mande a recuperación y el LLM rellene con fragmentos sueltos.
+    if any(re.search(p, question, re.IGNORECASE) for p in META_PATTERNS):
+        return {
+            "intent": "meta",
+            "theme": None,
+            "title_filter": None,
+            "doc_type_filter": None,
+            "compare_items": [],
+            "clarification": None,
+        }
+
     try:
         raw = get_llm().invoke(INTENT_PROMPT + "\n\nPREGUNTA: " + question).content
         parsed = _parse_json(raw)
@@ -160,8 +190,13 @@ def validate_intent(state: AgentState) -> dict:
     data = {**defaults, **{k: parsed.get(k) for k in defaults if parsed.get(k) is not None}}
 
     intent = data["intent"] if data["intent"] in {
-        "factual", "tematica", "comparacion", "catalogo", "fuera_de_dominio", "ambigua"
+        "factual", "tematica", "comparacion", "catalogo", "meta", "fuera_de_dominio", "ambigua"
     } else "factual"
+
+    # Los recuentos de temporadas se resuelven con SQL/E7 aunque el clasificador
+    # los haya tratado como pregunta factual (bug del 2026-10-18).
+    if SEASON_COUNT_RE.search(question):
+        intent = "catalogo"
 
     return {
         "intent": intent,
@@ -239,7 +274,7 @@ def retrieve(state: AgentState) -> dict:
             )
             results.extend(_search(question))
         # Consulta temática: refuerzo filtrando por la etiqueta del tema
-        # (Friendship Journal opera sobre metadatos, no sobre suposiciones)
+        # Refuerzo temático: trabaja sobre etiquetas del índice, no sobre suposiciones
         if state.get("theme"):
             themed = _search(question, theme=state["theme"])
             seen = {r["text"] for r in results}
@@ -287,10 +322,9 @@ def evaluate_sufficiency(state: AgentState) -> dict:
         return {"sufficient": True, "refusal_reason": None}
 
     if intent == "fuera_de_dominio":
-        # Solo se responde si hay evidencia fuerte de dominio: documentos SUBIDOS por el
-        # usuario o NOTAS DE CONTEXTO DEL CURSO (DEC-14). El resto de la biblioteca es de
-        # la serie, y una pregunta fuera de dominio no la concierne.
-        # retrieved ya viene filtrado por el umbral: cualquier entrada aquí supera E1.
+        # Solo se responde con documentos subidos por el usuario o notas de contexto
+        # del curso; el resto de la biblioteca es de la serie.
+        # retrieved ya viene filtrado por el umbral (E1).
         evidencia = [
             r
             for r in retrieved
@@ -332,6 +366,33 @@ def evaluate_sufficiency(state: AgentState) -> dict:
     return {"sufficient": True, "refusal_reason": None}
 
 
+def _season_breakdown() -> tuple[dict[int, int], int]:
+    """Episodios por temporada (regex «Temporada N, episodio») y especiales sin número.
+
+    Los fragmentos se agrupan por documento para que cada episodio se cuente una vez.
+    """
+    texts_por_doc: dict[int, list[str]] = {}
+    for item in fetch_documents("episodio"):
+        doc_id = item["metadata"].get("doc_id")
+        if doc_id is not None:
+            texts_por_doc.setdefault(doc_id, []).append(item["text"])
+
+    counts: dict[int, int] = {}
+    especiales = 0
+    for texts in texts_por_doc.values():
+        temporada = None
+        for text in texts:
+            match = re.search(r"Temporada (\d+), episodio", text)
+            if match:
+                temporada = int(match.group(1))
+                break
+        if temporada is None:
+            especiales += 1
+        else:
+            counts[temporada] = counts.get(temporada, 0) + 1
+    return counts, especiales
+
+
 def catalog_query(state: AgentState) -> dict:
     """Estrategia E7: consultas estructuradas para contar o enumerar el catálogo."""
     db = SessionLocal()
@@ -354,7 +415,31 @@ def catalog_query(state: AgentState) -> dict:
     for doc_type, count in sorted(rows, key=lambda r: -r[1]):
         lines.append(f"- {count} documento(s) de tipo '{doc_type}'.")
     lines.append(f"Total indexado: {total} documentos.")
+
+    # Desglose de episodios por temporada: se extrae del texto documental, sin LLM
+    if any(dt == "episodio" for dt, _ in rows):
+        por_temporada, especiales = _season_breakdown()
+        if por_temporada:
+            detalle = ", ".join(
+                f"Temporada {t}: {c}" for t, c in sorted(por_temporada.items())
+            )
+            line = (
+                f"My Little Pony: Friendship Is Magic está documentada en "
+                f"{len(por_temporada)} temporadas con {sum(por_temporada.values())} "
+                f"capítulos numerados — {detalle}."
+            )
+            if especiales:
+                line += (
+                    f" Además hay {especiales} especiales (películas y Equestria Girls) "
+                    f"sin número de temporada."
+                )
+            lines.append(line)
     return {"answer": "\n".join(lines), "sources": [], "refused": False}
+
+
+def agent_info(state: AgentState) -> dict:
+    """Respuesta fija sobre el alcance del agente (sin LLM ni recuperación)."""
+    return {"answer": AGENT_SCOPE, "sources": [], "refused": False}
 
 
 def generate(state: AgentState) -> dict:
@@ -455,12 +540,12 @@ def persist(state: AgentState) -> dict:
         db.close()
 
 
-# ---------------------------------------------------------------- rutas
-
 def route_after_intent(state: AgentState) -> str:
-    # "fuera_de_dominio" también se recupera: si el usuario subió un documento sobre ese
-    # asunto, debe poder consultarlo. Si no hay evidencia, evaluate_sufficiency lo rechaza.
-    return "catalog_query" if state.get("intent") == "catalogo" else "retrieve"
+    if state.get("intent") == "meta":
+        return "agent_info"
+    if state.get("intent") == "catalogo":
+        return "catalog_query"
+    return "retrieve"
 
 
 def route_after_sufficiency(state: AgentState) -> str:
@@ -483,6 +568,7 @@ def build_graph():
     builder.add_node("retrieve", retrieve)
     builder.add_node("evaluate_sufficiency", evaluate_sufficiency)
     builder.add_node("catalog_query", catalog_query)
+    builder.add_node("agent_info", agent_info)
     builder.add_node("generate", generate)
     builder.add_node("validate_answer", validate_answer)
     builder.add_node("reject", reject)
@@ -492,7 +578,12 @@ def build_graph():
     builder.add_conditional_edges(
         "validate_intent",
         route_after_intent,
-        {"reject": "reject", "retrieve": "retrieve", "catalog_query": "catalog_query"},
+        {
+            "reject": "reject",
+            "retrieve": "retrieve",
+            "catalog_query": "catalog_query",
+            "agent_info": "agent_info",
+        },
     )
     builder.add_edge("retrieve", "evaluate_sufficiency")
     builder.add_conditional_edges(
@@ -505,6 +596,7 @@ def build_graph():
         {"generate": "generate", "reject": "reject", "persist": "persist"},
     )
     builder.add_edge("catalog_query", "persist")
+    builder.add_edge("agent_info", "persist")
     builder.add_edge("reject", "persist")
     builder.add_edge("persist", END)
 

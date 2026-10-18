@@ -1,8 +1,4 @@
-"""Rutas de infraestructura: sin datos de negocio, sin autenticación.
-
-Clasificación documentada en docs/matriz-requisitos.md §7: son comprobaciones de
-salud para el despliegue y el orquestador, no endpoints de la aplicación.
-"""
+"""Rutas de infraestructura: /health, sin datos de negocio y sin autenticación."""
 from fastapi import APIRouter
 
 from app.config import get_settings

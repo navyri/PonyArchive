@@ -1,24 +1,22 @@
 """Importación de Pony API (https://ponyapi.net/).
 
-Verificación real de 2026-10-17 (K01/K02):
-  * 243 episodios, 555 personajes, 192 canciones disponibles.
-  * Campos de episodio: id, name, url, season, episode, overall, airdate,
-    storyby, writtenby, storyboard, song. NO incluyen sinopsis ni moraleja:
-    las fichas narrativas se redactan aparte (DEC-10).
-  * CORS: Access-Control-Allow-Origin: *. Límite por defecto: 50 registros.
-  * Las rutas con "%20" devuelven 403: se usan IDs numéricos.
-  * Licencia de los datos: CC BY-SA 3.0 (atribución obligatoria).
-"""
+Datos verificados: 243 episodios y 555 personajes. Los episodios no incluyen
+sinopsis ni moraleja; las fichas narrativas se redactan aparte. Licencia de los
+datos: CC BY-SA 3.0 (atribución obligatoria). Las rutas con "%20" devuelven 403:
+se usan IDs numéricos."""
 from __future__ import annotations
+
+import hashlib
 
 import httpx
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.models import Document
-from app.services.ingestion import index_document
+from app.services.fandom import fetch_synopsis, page_title_from_url
+from app.services.ingestion import index_document, remove_document
 
-LICENSE_NOTE = "CC BY-SA 3.0 — Pony API (datos de mlp.fandom.com)"
+LICENSE_NOTE = "CC BY-SA 3.0 — Pony API (metadatos) y wiki de Fandom mlp.fandom.com (sinopsis)"
 PAGE_SIZE = 100
 
 
@@ -40,7 +38,7 @@ def fetch_all(endpoint: str, params: dict | None = None) -> list[dict]:
             offset += PAGE_SIZE
 
 
-def _episode_text(ep: dict) -> str:
+def _episode_text(ep: dict, synopsis: str | None = None) -> str:
     season = ep.get("season", "?")
     number = ep.get("episode", "?")
     overall = ep.get("overall", "?")
@@ -48,16 +46,22 @@ def _episode_text(ep: dict) -> str:
         filter(None, [ep.get("storyby", ""), ep.get("writtenby", "")])
     ) or "No documentado"
     storyboard = (ep.get("storyboard", "") or "").replace("\n", "; ") or "No documentado"
-    return (
+    lines = [
         f"EPISODIO de My Little Pony: Friendship Is Magic\n"
         f"Título: {ep.get('name', 'Sin título')}\n"
         f"Temporada {season}, episodio {number} (número global {overall}).\n"
         f"Fecha de emisión: {ep.get('airdate', 'desconocida')}.\n"
         f"Historia: {authors}.\n"
         f"Guion gráfico: {storyboard}.\n"
-        f"Ficha de metadatos importada de Pony API. No contiene sinopsis: "
-        f"para análisis narrativo consulta las fichas narrativas de la biblioteca.\n"
-    )
+    ]
+    if synopsis:
+        lines.append(f"SINOPSIS (wiki de Fandom):\n{synopsis}\n")
+    else:
+        lines.append(
+            f"Ficha de metadatos importada de Pony API. No contiene sinopsis: "
+            f"para análisis narrativo consulta las fichas narrativas de la biblioteca.\n"
+        )
+    return "".join(lines)
 
 
 def _character_text(ch: dict) -> str:
@@ -78,26 +82,84 @@ def _character_text(ch: dict) -> str:
 
 
 def import_episodes(db: Session) -> dict:
+    """Importa los episodios de Pony API y les añade la sinopsis de Fandom.
+
+    Idempotente por source_id: los episodios ya indexados con sinopsis se omiten;
+    los que existan sin ella (formato antiguo) se reemplazan. Seguro de ejecutar
+    en cada arranque sin duplicar ni re-descargar todo.
+    """
     episodes = fetch_all("episode/all", {"image": "none", "song": "none"})
-    created = skipped = 0
+    created = updated = skipped = con_sinopsis = 0
     for ep in episodes:
-        text = _episode_text(ep)
-        before = db.query(Document).count()
-        index_document(
+        title = str(ep.get("name", "Sin título"))
+        source_id = str(ep.get("id"))
+        synopsis = fetch_synopsis(page_title_from_url(ep.get("url", "")))
+        if synopsis:
+            con_sinopsis += 1
+        text = _episode_text(ep, synopsis)
+        outcome = _upsert_library_doc(
             db,
-            title=str(ep.get("name", "Sin título")),
+            title=title,
             text=text,
             doc_type="episodio",
-            source="ponyapi",
-            source_id=str(ep.get("id")),
+            source_id=source_id,
             source_url=ep.get("url", ""),
-            license_note=LICENSE_NOTE,
         )
-        if db.query(Document).count() > before:
+        if outcome == "created":
             created += 1
+        elif outcome == "updated":
+            updated += 1
         else:
             skipped += 1
-    return {"descargados": len(episodes), "indexados": created, "omitidos_duplicados": skipped}
+    return {
+        "descargados": len(episodes),
+        "indexados": created,
+        "actualizados": updated,
+        "omitidos_duplicados": skipped,
+        "con_sinopsis": con_sinopsis,
+    }
+
+
+def _upsert_library_doc(
+    db: Session,
+    *,
+    title: str,
+    text: str,
+    doc_type: str,
+    source_id: str,
+    source_url: str,
+) -> str:
+    """Indexa un documento de biblioteca identificado por (doc_type, source_id).
+
+    Devuelve "created", "updated" u "skipped". Si ya existe con el mismo texto se
+    omite; si existe con texto distinto (p. ej. se añadió la sinopsis) se
+    reemplaza para evitar duplicados. Nunca toca documentos de usuarios.
+    """
+    existing = (
+        db.query(Document)
+        .filter(
+            Document.doc_type == doc_type,
+            Document.source_id == source_id,
+            Document.user_id.is_(None),
+        )
+        .first()
+    )
+    new_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    if existing and existing.content_hash == new_hash:
+        return "skipped"
+    if existing:
+        remove_document(db, existing)
+    index_document(
+        db,
+        title=title,
+        text=text,
+        doc_type=doc_type,
+        source="ponyapi",
+        source_id=source_id,
+        source_url=source_url,
+        license_note=LICENSE_NOTE,
+    )
+    return "updated" if existing else "created"
 
 
 def import_characters(db: Session) -> dict:

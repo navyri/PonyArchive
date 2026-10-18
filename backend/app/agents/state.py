@@ -24,8 +24,8 @@ class AgentState(TypedDict, total=False):
     history: list[list[str]]          # [["usuario", "..."], ["asistente", "..."]]
 
     # Nodo 1 — validación de intención y filtros
-    intent: str                       # factual | tematica | comparacion | catalogo | fuera_de_dominio | ambigua
-    theme: str | None                 # etiqueta temática de Friendship Journal
+    intent: str                       # factual | tematica | comparacion | catalogo | meta | fuera_de_dominio | ambigua
+    theme: str | None                 # etiqueta temática detectada en la pregunta
     title_filter: str | None          # continuidad/episodio/personaje citado en la pregunta
     doc_type_filter: str | None       # episodio | personaje | cancion | ficha_narrativa | upload
     compare_items: list[str]          # elementos a comparar (intent = comparacion)

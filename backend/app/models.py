@@ -17,7 +17,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     display_name: Mapped[str] = mapped_column(String(120), default="")
-    # Vacío cuando el usuario vive en Keycloak (DEC-05); hash bcrypt cuando es local
+    # Vacío cuando el usuario vive en Keycloak; hash bcrypt cuando es local
     password_hash: Mapped[str] = mapped_column(String(255), default="")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

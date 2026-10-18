@@ -1,13 +1,8 @@
-"""Semilla inicial: fichas narrativas propias de Friendship Journal.
+"""Semilla inicial: fichas narrativas de la biblioteca.
 
-DEC-10: la Pony API no contiene sinopsis ni moralejas, así que estas fichas se
-redactan para el proyecto y se indexan como documentos de la biblioteca
-(doc_type = "ficha_narrativa", source = "semilla").
-
-El contenido describe lo que ocurre en cada episodio; no inventa datos fuera de
-lo documentado en la serie. Si detectas un error factual, corrige el JSON: es la
-fuente de verdad de la aplicación.
-"""
+La Pony API no contiene sinopsis ni moralejas, así que estas fichas se redactan
+para el proyecto y se indexan como documentos (doc_type = "ficha_narrativa",
+source = "semilla"). El JSON es la fuente de verdad de la aplicación."""
 from __future__ import annotations
 
 import json
@@ -67,11 +62,7 @@ def seed_if_empty(db: Session) -> dict:
 
 
 def seed_contexto(db: Session) -> dict:
-    """Notas de contexto del curso (requisito del profesor, ver docs/decisiones.md DEC-14).
-
-    Idempotente por título: si la nota ya está indexada no la vuelve a crear, así
-    que es seguro ejecutarla en cada arranque, tanto local como en contenedor.
-    """
+    """Notas de contexto del curso. Idempotente por título."""
     path = SEED_DIR / "contexto_curso.json"
     if not path.exists():
         return {"estado": "sin_notas", "creadas": 0}

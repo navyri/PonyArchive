@@ -1,4 +1,4 @@
-"""Taxonomía temática de Friendship Journal.
+"""Taxonomía temática: etiquetas del índice para recuperación y clasificación.
 
 Las etiquetas se asignan a los documentos/fragmentos. La asignación automática
 se hace por coincidencia de palabras clave sobre el texto del documento; es una
@@ -27,10 +27,6 @@ def detect_themes(text: str) -> list[str]:
     lowered = text.lower()
     found = [theme for theme, keywords in THEMES.items() if any(k in lowered for k in keywords)]
     return found or ["amistad"]
-
-
-def all_theme_names() -> list[str]:
-    return sorted(THEMES.keys())
 
 
 def theme_from_query(text: str) -> str | None:

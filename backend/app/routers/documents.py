@@ -1,5 +1,6 @@
-"""Endpoints de carga, listado y borrado de documentos (§2.4 del PDF)."""
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+"""Endpoints de carga, listado y borrado de documentos."""
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi.responses import JSONResponse
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
@@ -90,11 +91,14 @@ def list_documents(
     db: Session = Depends(get_db),
     doc_type: str | None = None,
     scope: str = "all",
+    limit: int = Query(1000, ge=1, le=5000),
+    offset: int = Query(0, ge=0),
 ):
     """Lista los documentos: los compartidos de la biblioteca y los propios del usuario.
 
     Nunca muestra documentos privados de otros usuarios (aislamiento, T10):
-    scope=all = biblioteca compartida + los míos.
+    scope=all = biblioteca compartida + los míos. Paginación por limit/offset para
+    recorrer todo el corpus sin un tope fijo.
     """
     query = db.query(Document)
     if doc_type:
@@ -107,8 +111,21 @@ def list_documents(
         query = query.filter(
             or_(Document.user_id == user.id, Document.user_id.is_(None))
         )
-    docs = query.order_by(Document.created_at.desc()).limit(300).all()
-    return [_doc_payload(d) for d in docs]
+    total = query.count()
+    docs = (
+        query.order_by(Document.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+    return JSONResponse(
+        {
+            "items": [_doc_payload(d) for d in docs],
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+        }
+    )
 
 
 @router.delete("/{document_id}", status_code=204)
