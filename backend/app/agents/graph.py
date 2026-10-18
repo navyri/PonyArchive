@@ -37,8 +37,9 @@ META_PATTERNS = (
     r"en qu[eé] me puedes (ayudar|servir)",
 )
 
-# Recuento de temporadas: pregunta estructurada del corpus, resuelta con E7
+# Recuento de temporadas o canciones: preguntas estructuradas, resueltas con E7
 SEASON_COUNT_RE = re.compile(r"cu[aá]nt(as|os)[^.?!]{0,60}temporada", re.IGNORECASE)
+SONG_COUNT_RE = re.compile(r"cu[aá]nt(as|os)[^.?!]{0,40}cancion", re.IGNORECASE)
 
 AGENT_SCOPE = """Soy PonyArchive, el agente de esta biblioteca sobre My Little Pony: Friendship Is Magic
 (la generación G4, 2010-2019). Uso únicamente la documentación indexada, así que puedo
@@ -99,7 +100,9 @@ REGLAS INQUEBRANTABLES:
    aparece, di "No está documentado en la biblioteca" en lugar de rellenarlo.
 4. No inventes nombres, episodios, fechas, moralejas ni relaciones entre personajes.
 5. Cita las fuentes al final como [1], [2]... con título y tipo de documento.
-6. Responde en español, claro y breve.
+6. Responde en español, claro y breve, pero copia los nombres propios tal como
+   aparecen en los fragmentos (p. ej. "Princess Celestia", no "Princesa Celestia"):
+   así quien lea puede rastrearlos en la fuente.
 {extra_rule}
 
 CONTEXTO DOCUMENTAL:
@@ -150,12 +153,33 @@ def _source_list(retrieved: list[dict]) -> list[dict]:
     return out
 
 
+def _norm_text(s: str) -> str:
+    """Minúsculas sin acentos ni puntuación."""
+    table = str.maketrans("áéíóúüñ?¡¿.,:;!()", "aeiouun          ")
+    return " ".join(s.lower().translate(table).split())
+
+
 def _fuzzy_contains(haystack: str, needle: str) -> bool:
-    """Coincidencia tolerante a acentos y mayúsculas."""
-    def norm(s: str) -> str:
-        table = str.maketrans("áéíóúüñ", "aeiouun")
-        return s.lower().translate(table)
-    return norm(needle) in norm(haystack)
+    """Coincidencia tolerante a acentos, mayúsculas y puntuación."""
+    return _norm_text(needle) in _norm_text(haystack)
+
+
+def _documented_title_in(question: str) -> str | None:
+    """Título de la biblioteca compartida citado literalmente en la pregunta."""
+    norm_q = _norm_text(question)
+    db = SessionLocal()
+    try:
+        titles = [
+            t for (t,) in db.query(Document.title)
+            .filter(Document.user_id.is_(None), Document.status == "indexado")
+            .all()
+        ]
+    finally:
+        db.close()
+    return next(
+        (t for t in titles if len(_norm_text(t)) >= 10 and _norm_text(t) in norm_q),
+        None,
+    )
 
 
 def validate_intent(state: AgentState) -> dict:
@@ -193,15 +217,23 @@ def validate_intent(state: AgentState) -> dict:
         "factual", "tematica", "comparacion", "catalogo", "meta", "fuera_de_dominio", "ambigua"
     } else "factual"
 
-    # Los recuentos de temporadas se resuelven con SQL/E7 aunque el clasificador
-    # los haya tratado como pregunta factual (bug del 2026-10-18).
-    if SEASON_COUNT_RE.search(question):
+    # Los recuentos de temporadas o canciones se resuelven con SQL/E7 aunque el
+    # clasificador los haya tratado como pregunta factual (bug del 2026-10-18).
+    if SEASON_COUNT_RE.search(question) or SONG_COUNT_RE.search(question):
         intent = "catalogo"
+
+    # Un título documentado citado en la pregunta anula un "fuera_de_dominio"
+    # erróneo del clasificador (bug del 2026-10-18) y acota la recuperación.
+    titulo = data["titulo"]
+    if intent == "fuera_de_dominio":
+        citado = _documented_title_in(question)
+        if citado:
+            intent, titulo = "factual", citado
 
     return {
         "intent": intent,
         "theme": data["theme"],
-        "title_filter": data["titulo"],
+        "title_filter": titulo,
         "doc_type_filter": data["tipo_documento"],
         "compare_items": data["elementos"] or [],
         "clarification": data["aclaracion"],
@@ -470,13 +502,24 @@ def generate(state: AgentState) -> dict:
     return {"answer": answer, "sources": [] if refused else _source_list(retrieved), "refused": refused}
 
 
+def _entity_supported(entity: str, context: str) -> bool:
+    """La entidad consta en el contexto, tolerando la traducción del nombre común."""
+    norm_e = _norm_text(entity)
+    if norm_e in context:
+        return True
+    # La parte distintiva del nombre (última palabra) basta si aparece:
+    # "Princesa Celestia" -> "celestia" sí está en el contexto en inglés.
+    words = norm_e.split()
+    return len(words) > 1 and len(words[-1]) >= 4 and words[-1] in context
+
+
 def validate_answer(state: AgentState) -> dict:
     """Estrategia E6: verifica que las entidades de la respuesta existan en el contexto."""
     if state.get("refused"):
         return {"grounded": True}
 
     answer = state.get("answer", "")
-    context = " ".join(r["text"] for r in state.get("retrieved", [])).lower()
+    context = _norm_text(" ".join(r["text"] for r in state.get("retrieved", [])))
 
     # Entidades: secuencias de nombres propios de la respuesta
     entities = re.findall(r"[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)+", answer)
@@ -485,7 +528,7 @@ def validate_answer(state: AgentState) -> dict:
     if not entities:
         return {"grounded": True}
 
-    unsupported = [e for e in entities if e.lower() not in context]
+    unsupported = [e for e in entities if not _entity_supported(e, context)]
     ratio = len(unsupported) / len(entities)
     grounded = ratio <= 0.5 or len(unsupported) == 0
     if not grounded:

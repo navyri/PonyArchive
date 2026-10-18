@@ -235,8 +235,6 @@ def search(
         clauses = []
         if doc_type:
             clauses.append({"doc_type": doc_type})
-        if title_contains:
-            clauses.append({"title": {"$contains": title_contains}})
         if user_id is not None:
             clauses.append({"user_id": user_id})
         if visible_to is not None:
@@ -248,7 +246,7 @@ def search(
         else:
             where = None
 
-        n_results = k * 5 if theme else k
+        n_results = k * 5 if (theme or title_contains) else k
         try:
             result = collection.query(
                 query_embeddings=[query_embedding],
