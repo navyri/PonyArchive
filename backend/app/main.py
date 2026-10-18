@@ -3,6 +3,7 @@
 /api/auth/* no exige token previo (es el mecanismo para obtenerlo), /health es
 infraestructura y el resto de /api/* exige Bearer token."""
 from contextlib import asynccontextmanager
+from threading import Thread
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,9 +17,12 @@ from app.seed import seed_contexto, seed_if_empty
 settings = get_settings()
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    init_db()
+def _sembrar() -> None:
+    """Semilla e importación inicial en su propio hilo.
+
+    En un despliegue nuevo la indexación con embeddings OpenAI tarda varios
+    minutos: no puede bloquear el arranque ni el health check de la nube.
+    """
     db = SessionLocal()
     try:
         result = seed_if_empty(db)
@@ -52,6 +56,12 @@ async def lifespan(app: FastAPI):
                 )
     finally:
         db.close()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    Thread(target=_sembrar, daemon=True).start()
     yield
 
 

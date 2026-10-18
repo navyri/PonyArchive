@@ -3,16 +3,20 @@
 Uso (con el servidor arrancado en http://127.0.0.1:8000):
     python scripts/smoke_test.py
 
+Otro servidor/puerto (p. ej. el backend en modo nube):
+    SMOKE_BASE_URL=http://127.0.0.1:8001 python scripts/smoke_test.py
+
 Comprueba: salud, registro, rechazo sin token, respuesta sustentada con fuentes,
 rechazo explícito fuera de dominio e historial por usuario.
 """
+import os
 import sys
 import time
 from pathlib import Path
 
 import httpx
 
-BASE = "http://127.0.0.1:8000"
+BASE = os.environ.get("SMOKE_BASE_URL", "http://127.0.0.1:8000")
 EMAIL = f"demo{int(time.time())}@ejemplo-ponyarchive.com"
 PASSWORD = "demo12345"
 

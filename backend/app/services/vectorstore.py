@@ -12,12 +12,17 @@ no carga Chroma, y viceversa.
 Metadatos: Chroma exige escalares; en Qdrant los None se convierten a -1 en
 user_id y a cadena vacía en el resto, para que el filtrado sea equivalente.
 """
+import logging
 from threading import Lock
+from uuid import NAMESPACE_URL, uuid5
 
 from app.config import get_settings
 
+logger = logging.getLogger(__name__)
+
 _chroma_client = None
 _qdrant_client = None
+_qdrant_listo: set[str] = set()
 _lock = Lock()
 
 
@@ -57,10 +62,17 @@ def _get_qdrant():
 
 
 def _ensure_qdrant_collection(client, settings) -> None:
+    """Crea la colección y sus índices de payload si faltan.
+
+    Qdrant Cloud rechaza con 400 cualquier filtro sobre un campo sin índice,
+    así que user_id (entero) y doc_type (cadena) se indexan al asegurar.
+    """
     from app.services.embeddings import embedding_dims
-    from qdrant_client.models import Distance, VectorParams
+    from qdrant_client.models import Distance, PayloadSchemaType, VectorParams
 
     name = settings.qdrant_collection
+    if name in _qdrant_listo:
+        return
     if not client.collection_exists(name):
         client.create_collection(
             collection_name=name,
@@ -68,6 +80,19 @@ def _ensure_qdrant_collection(client, settings) -> None:
                 size=embedding_dims(), distance=Distance.COSINE
             ),
         )
+    indexados = set(client.get_collection(name).payload_schema or {})
+    for campo, tipo in (
+        ("user_id", PayloadSchemaType.INTEGER),
+        ("doc_type", PayloadSchemaType.KEYWORD),
+    ):
+        if campo not in indexados:
+            client.create_payload_index(
+                collection_name=name,
+                field_name=campo,
+                field_schema=tipo,
+                wait=True,
+            )
+    _qdrant_listo.add(name)
 
 
 def _meta_scalars(meta: dict) -> dict:
@@ -96,9 +121,10 @@ def add_chunks(
 
         client = _get_qdrant()
         settings = get_settings()
+        # Qdrant exige entero o UUID: se deriva un UUIDv5 del ID determinista.
         points = [
             PointStruct(
-                id=f"{doc_id}_{i}",
+                id=str(uuid5(NAMESPACE_URL, ids[i])),
                 vector=embeddings[i],
                 payload={"text": texts[i], **_meta_scalars(metadatas[i])},
             )
@@ -218,6 +244,9 @@ def search(
                 with_payload=True,
             )
         except Exception:
+            logger.exception(
+                "búsqueda fallida en Qdrant (colección %s)", settings.qdrant_collection
+            )
             return []
         out = []
         for pt in res.points:

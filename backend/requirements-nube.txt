@@ -1,0 +1,32 @@
+# PonyArchive — Backend en modo nube (Render, plan free)
+# Sin torch / sentence-transformers / chromadb / Ollama: en la nube el grafo
+# usa OpenAI (embeddings y chat) y Qdrant Cloud; los imports son perezosos.
+
+# --- Agente (obligatorio: LangChain + LangGraph) ---
+langchain==1.4.6
+langchain-core==1.6.12
+langchain-community==0.4.2
+langgraph==1.2.16
+
+# --- Base de datos vectorial ---
+qdrant-client==1.19.1
+
+# --- API y backend ---
+fastapi==0.141.1
+uvicorn[standard]==0.54.0
+python-multipart
+sqlalchemy
+aiosqlite
+
+# --- Procesamiento de documentos ---
+pypdf
+python-docx
+pandas
+
+# --- Seguridad y configuración ---
+pyjwt
+bcrypt
+python-dotenv
+pydantic-settings
+email-validator
+httpx

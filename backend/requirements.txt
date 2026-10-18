@@ -1,5 +1,5 @@
 # PonyArchive — Backend
-# Instalado y verificado el 2026-10-17 en Python 3.14.2 (ver docs/decisiones.md)
+# Instalado y verificado el 2026-10-18 en Python 3.14.2
 
 # --- Agente (obligatorio: LangChain + LangGraph) ---
 langchain==1.4.6
@@ -18,6 +18,7 @@ transformers
 
 # --- Base de datos vectorial ---
 chromadb==1.5.9
+qdrant-client==1.19.1    # nube (VECTOR_PROVIDER=qdrant)
 
 # --- API y backend ---
 fastapi==0.141.1

@@ -43,8 +43,13 @@ class _OpenAIChat:
     def invoke(self, messages):
         import httpx
 
+        if isinstance(messages, str):
+            messages = [messages]
         payload_messages = []
         for m in messages:
+            if isinstance(m, str):
+                payload_messages.append({"role": "user", "content": m})
+                continue
             role = getattr(m, "type", "human")
             if role in ("human", "user"):
                 role = "user"

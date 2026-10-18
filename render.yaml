@@ -1,17 +1,20 @@
 # Blueprint de Render: backend de PonyArchive (plan free, 0 USD).
 # Los valores secretos (OPENAI_API_KEY, QDRANT_URL, QDRANT_API_KEY) se
 # cargan desde el panel de Render; no van en el repo.
+# CORS_ORIGINS se rellena con la URL de Vercel tras desplegar el frontend.
 services:
   - type: web
     name: ponyarchive-api
     runtime: python
     rootDir: backend
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements-nube.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
+      - key: APP_ENV
+        value: prod
       - key: EMBEDDINGS_PROVIDER
         value: openai
       - key: LLM_PROVIDER
@@ -20,20 +23,20 @@ services:
         value: qdrant
       - key: OPENAI_CHAT_MODEL
         value: gpt-4o-mini
-      - key: OPENAI_EMBED_MODEL
+      - key: OPENAI_EMBEDDING_MODEL
         value: text-embedding-3-small
       - key: QDRANT_COLLECTION
         value: ponyarchive
       - key: AUTH_PROVIDER
         value: local
-      - key: HIDE_API_DOCS
-        value: "1"
+      - key: CORS_ORIGINS
+        sync: false
       - key: OPENAI_API_KEY
         sync: false
       - key: QDRANT_URL
         sync: false
       - key: QDRANT_API_KEY
         sync: false
-      - key: JWT_SECRET
+      - key: SECRET_KEY
         generateValue: true
     freePlan: true
