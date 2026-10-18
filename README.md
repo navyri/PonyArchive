@@ -1,10 +1,34 @@
-# PonyArchive
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&height=210&color=21182E&text=PONYARCHIVE&fontColor=B78ADC&fontSize=62&fontAlignY=32&desc=Biblioteca%20inteligente%20MLP%20G4%20%C2%B7%20agente%20RAG%20con%20LangGraph%20y%20modelo%20local&descColor=79D9CD&descAlignY=58"/>
+</p>
 
-**Biblioteca inteligente de *My Little Pony: Friendship Is Magic* con un agente RAG (LangChain + LangGraph), modelo local en Ollama y una base vectorial propia.**
+<p align="center">
+  <img src="https://64.media.tumblr.com/ca492f2e341e5f0d825c899842bd2ca3/f8c0a52918cf3b90-85/s500x750/044bc7e22b528a519ee7391eeb1533b5542503dc.gifv" alt="Twilight Sparkle" height="350"/>
+</p>
 
-El agente responde preguntas sobre los 243 episodios, 555 personajes y 192 canciones de la serie a partir de su propia base de conocimiento indexada, muestra las fuentes recuperadas con su similitud y **se niega a responder** cuando la evidencia no alcanza. Incluye autenticación con JWT, historial por usuario, carga de documentos y despliegue en la nube (0 USD).
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.11%2B-B78ADC?style=flat-square&logo=python&logoColor=white"/>
+  <img src="https://img.shields.io/badge/FastAPI-REST-79D9CD?style=flat-square&logo=fastapi&logoColor=black"/>
+  <img src="https://img.shields.io/badge/LangGraph-StateGraph-DE85B8?style=flat-square"/>
+  <img src="https://img.shields.io/badge/React-19-EEE6F5?style=flat-square&logo=react&logoColor=B78ADC"/>
+  <img src="https://img.shields.io/badge/Ollama-qwen3.5%3A4b-30213F?style=flat-square"/>
+  <img src="https://img.shields.io/badge/licencia-MIT-79D9CD?style=flat-square"/>
+  <img src="https://img.shields.io/badge/datos-CC%20BY--SA%203.0-DE85B8?style=flat-square"/>
+  <img src="https://img.shields.io/badge/coste-0%20USD-B78ADC?style=flat-square"/>
+</p>
 
-Repositorio: https://github.com/navyri/PonyArchive
+**PonyArchive** es una biblioteca inteligente de *My Little Pony: Friendship Is Magic* (G4) con un
+agente RAG (LangChain + LangGraph), modelo local en Ollama y una base vectorial propia.
+
+El agente responde preguntas sobre los **243 episodios, 555 personajes y 192 canciones** de la serie a
+partir de su propia base de conocimiento indexada (1.015 documentos → 3.100 fragmentos), muestra las
+fuentes recuperadas con su similitud y **se niega a responder** cuando la evidencia no alcanza.
+Incluye autenticación con JWT, historial por usuario, carga de documentos y despliegue en la nube
+(0 USD).
+
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=rect&height=5&color=B78ADC,79D9CD"/>
+</p>
 
 ## Requisitos
 
@@ -32,7 +56,15 @@ npm install
 npm run dev                     # http://localhost:5173
 ```
 
-Al arrancar, el backend importa automáticamente episodios, personajes y canciones desde [Pony API](https://github.com/PonyAPI/mlp-fim-api) y los enriquece con la [wiki de Fandom](https://mlp.fandom.com) (CC BY-SA): sinopsis de los episodios y descripción de los personajes. La primera arrancada en una BD vacía tarda ~8–10 min (243 episodios + 555 personajes + 192 canciones); posteriores lo omiten si ya están indexados.
+Al arrancar, el backend importa automáticamente episodios, personajes y canciones desde
+[Pony API](https://github.com/PonyAPI/mlp-fim-api) y los enriquece con la [wiki de Fandom](https://mlp.fandom.com)
+(CC BY-SA): sinopsis de los episodios y descripción de los personajes. La primera arrancada en una BD
+vacía tarda ~8–10 min (243 episodios + 555 personajes + 192 canciones); posteriores lo omiten si ya
+están indexados (la ingesta es idempotente).
+
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=rect&height=5&color=B78ADC,79D9CD"/>
+</p>
 
 ## Características
 
@@ -41,10 +73,10 @@ Al arrancar, el backend importa automáticamente episodios, personajes y cancion
 | Agente RAG con LangGraph | ✅ | Grafo con clasificación de intención, recuperación filtrada y respuesta fundamentada |
 | Base vectorial | ✅ | Chroma local / Qdrant Cloud; embeddings e5-small (384d) u OpenAI |
 | Respuestas con fuentes | ✅ | Cada respuesta lista los fragmentos con título, tipo y similitud |
-| Anti-alucinación | ✅ | Umbral de similitud + rechazo literal cuando la evidencia no alcanza |
+| Anti-alucinación | ✅ | 7 estrategias: umbral de similitud, validación de entidades, rechazo literal, conteos por SQL… |
 | Modelo local | ✅ | `qwen3.5:4b` vía Ollama |
 | Autenticación JWT | ✅ | Registro, login, logout y refresh; historial por usuario |
-| Carga de documentos | ✅ | Sube .txt/.md/.pdf y pregúntales al agente |
+| Carga de documentos | ✅ | Sube .txt/.md y pregúntales al agente |
 | Despliegue en la nube | ✅ | Frontend en Vercel y backend en Render (0 USD), pila dual por variable de entorno |
 
 ## Credenciales de prueba
@@ -58,7 +90,7 @@ Crea una cuenta desde la propia UI de registro. Hay un usuario de demostración 
 
 ## Estructura del proyecto
 
-```
+```text
 PonyArchive/
 ├── backend/
 │   ├── app/
@@ -71,7 +103,7 @@ PonyArchive/
 │   │   ├── security.py      # JWT y hashing de contraseñas
 │   │   ├── seed.py          # semilla de la biblioteca base
 │   │   └── main.py          # composición de la API (FastAPI)
-│   ├── scripts/             # smoke_test.py, e2e_compose.py
+│   ├── scripts/             # smoke_test.py, e2e_compose.py, import_pony.py
 │   └── requirements.txt
 ├── frontend/
 │   ├── src/
@@ -81,14 +113,18 @@ PonyArchive/
 │   │   └── index.css        # tema oscuro (paleta Starlight Glimmer)
 │   └── vite.config.ts
 ├── docs/
-│   ├── documento-tecnico.pdf # documento técnico
+│   ├── documento-tecnico.md  # documento técnico (fuente)
+│   ├── documento-tecnico.pdf # documento técnico (PDF)
 │   ├── presentacion.pdf      # láminas de la demo
 │   ├── capturas/             # capturas de pantalla
-│   ├── despliegue-nube.md    # checklist del despliegue (M8)
-│   └── decisiones.md         # registro de decisiones
+│   └── despliegue-nube.md    # checklist del despliegue en nube
 ├── render.yaml               # blueprint del backend en Render
 └── docker-compose.yml
 ```
+
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=rect&height=5&color=B78ADC,79D9CD"/>
+</p>
 
 ## Endpoints
 
@@ -102,24 +138,41 @@ PonyArchive/
 | `/api/chat/conversations` | Historial de conversaciones por usuario |
 | `/api/documents` | Listado, subida y borrado de documentos (con token) |
 | `/api/library/search` | Búsqueda en la biblioteca compartida |
-| `/api/import/*` | Importación de Pony API (con token) |
+| `/api/import/*` | Importación de Pony API: episodios, personajes y canciones (con token) |
 
 ## Despliegue en la nube (0 USD)
 
-La arquitectura en nube usa **Frontend en Vercel + Backend en Render + Qdrant Cloud + OpenAI** (embeddings y chat). El frontend solo habla con el backend por `/api`; el modelo y la base vectorial quedan tras la API. Los tres providers se cambian por variable de entorno (`EMBEDDINGS_PROVIDER`, `LLM_PROVIDER`, `VECTOR_PROVIDER`); los valores por defecto son la pila local.
+La arquitectura en nube usa **frontend en Vercel + backend en Render + Qdrant Cloud + OpenAI**
+(embeddings y chat). El frontend solo habla con el backend por `/api`; el modelo y la base vectorial
+quedan tras la API. Los tres providers se cambian por variable de entorno (`EMBEDDINGS_PROVIDER`,
+`LLM_PROVIDER`, `VECTOR_PROVIDER`); los valores por defecto son la pila local.
 
-El paso a paso está en `docs/despliegue-nube.md` y las decisiones en `docs/decisiones.md`. El backend se publica con el blueprint `render.yaml` de la raíz; los secretos (`OPENAI_API_KEY`, `QDRANT_URL`, `QDRANT_API_KEY`) se cargan desde el panel de Render.
+El paso a paso está en `docs/despliegue-nube.md`. El backend se publica con el blueprint `render.yaml`
+de la raíz; los secretos (`OPENAI_API_KEY`, `QDRANT_URL`, `QDRANT_API_KEY`) se cargan desde el panel de
+Render y **nunca se versionan**.
 
 ## Documentación y demo
 
-El repositorio incluye el documento técnico y la presentación en `docs/`, además de una prueba e2e (`backend/scripts/e2e_compose.py`). La demo muestra el agente respondiendo con fuentes, el rechazo literal y la carga de documentos.
+El repositorio incluye el documento técnico (`docs/documento-tecnico.md` + PDF) y la presentación
+(`docs/presentacion.pdf`) en `docs/`, además de una prueba e2e (`backend/scripts/e2e_compose.py`) y un
+smoke test de 12 casos (`backend/scripts/smoke_test.py`). La demo muestra el agente respondiendo con
+fuentes, el rechazo literal y la carga de documentos.
+
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=rect&height=5&color=B78ADC,79D9CD"/>
+</p>
 
 ## Regenerar PDF
 
-Los PDF se generan desde los HTML de `docs/` (impresión headless del navegador):
-
 ```bash
-# desde la raíz del repositorio (Windows, Edge)
-"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --headless --print-to-pdf="docs\documento-tecnico.pdf" --no-pdf-header-footer "file:///C:/ruta/al/repo/docs/documento-tecnico.html"
-"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --headless --print-to-pdf="docs\presentacion.pdf" --no-pdf-header-footer "file:///C:/ruta/al/repo/docs/presentacion.html"
+# Presentación (Windows, Edge headless)
+"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --headless=new --print-to-pdf="docs\presentacion.pdf" --no-pdf-header-footer "file:///C:/ruta/al/repo/docs/presentacion.html"
+
+# Documento técnico: se genera desde docs/documento-tecnico.md (Markdown -> HTML -> PDF)
 ```
+
+## Licencias
+
+- **Código:** MIT (archivo `LICENSE`).
+- **Datos:** Pony API y wiki de Fandom bajo **CC BY-SA 3.0** (atribución obligatoria). Las fichas
+  narrativas y las etiquetas temáticas son redacción propia.
