@@ -18,7 +18,11 @@ def health():
         "status": "ok",
         "app": settings.app_name,
         "env": settings.app_env,
-        "model": settings.ollama_model,
+        "model": (
+            settings.openai_chat_model
+            if settings.llm_provider == "openai"
+            else settings.ollama_model
+        ),
         "auth_provider": settings.auth_provider,
         "chunks_indexados": chunks,
     }

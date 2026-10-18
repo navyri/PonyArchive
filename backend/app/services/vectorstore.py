@@ -176,6 +176,54 @@ def fetch_documents(doc_type: str) -> list[dict]:
     ]
 
 
+def catalogo_compartido() -> list[dict]:
+    """Un registro por documento compartido (user_id -1) con sus metadatos.
+
+    Permite reconstruir el catálogo relacional desde el índice vectorial
+    (hidratación en despliegues nuevos, sin re-embeber ni reimportar).
+    """
+    if _is_qdrant():
+        client = _get_qdrant()
+        settings = get_settings()
+        qfilter = _build_qdrant_filter(doc_type=None, user_id=-1, visible_to=None)
+        registros: dict[int, dict] = {}
+        recuentos: dict[int, int] = {}
+        offset = None
+        while True:
+            records, offset = client.scroll(
+                collection_name=settings.qdrant_collection,
+                scroll_filter=qfilter,
+                limit=256,
+                offset=offset,
+                with_payload=True,
+            )
+            for pt in records:
+                payload = pt.payload or {}
+                if payload.get("doc_id") is None:
+                    continue
+                doc_id = int(payload["doc_id"])
+                recuentos[doc_id] = recuentos.get(doc_id, 0) + 1
+                if int(payload.get("chunk_index", 0)) == 0:
+                    registros[doc_id] = payload
+            if offset is None:
+                break
+    else:
+        registros = {}
+        recuentos = {}
+        res = _get_chroma_collection().get(where={"user_id": -1}, include=["metadatas"])
+        for meta in res["metadatas"]:
+            if meta.get("doc_id") is None:
+                continue
+            doc_id = int(meta["doc_id"])
+            recuentos[doc_id] = recuentos.get(doc_id, 0) + 1
+            if int(meta.get("chunk_index", 0)) == 0:
+                registros[doc_id] = meta
+    return [
+        {"doc_id": doc_id, "chunk_count": recuentos.get(doc_id, 0), **meta}
+        for doc_id, meta in sorted(registros.items())
+    ]
+
+
 def delete_document(doc_id: int) -> None:
     if _is_qdrant():
         from qdrant_client.models import FieldCondition, Filter, MatchValue

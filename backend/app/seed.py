@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Document
 from app.services.ingestion import index_document
+from app.services.vectorstore import catalogo_compartido
 
 # En contenedor, PONYARCHIVE_SEED_DIR apunta a /app/seed (fuera del volumen de datos:
 # docker-compose monta /app/data y enmascararía cualquier semilla ahí dentro).
@@ -36,10 +37,56 @@ def _format_ficha(item: dict) -> str:
     )
 
 
+def _hidratar_catalogo(db: Session) -> int:
+    """Reconstruye las filas del catálogo compartido desde el índice vectorial.
+
+    En un despliegue nuevo la base relacional arranca vacía pero el índice de
+    la nube ya contiene la biblioteca: se recuperan sus metadatos sin re-embeber.
+    """
+    creados = 0
+    for fila in catalogo_compartido():
+        if db.get(Document, fila["doc_id"]) is not None:
+            continue
+        db.add(
+            Document(
+                id=fila["doc_id"],
+                user_id=None,
+                title=fila.get("title", "") or "(sin título)",
+                doc_type=fila.get("doc_type", "documento"),
+                source=fila.get("source", ""),
+                source_id=fila.get("source_id", "") or f"idx-{fila['doc_id']}",
+                source_url=fila.get("source_url", ""),
+                status="indexado",
+                chunk_count=fila.get("chunk_count", 0),
+                license_note=(
+                    "Metadatos reconstruidos desde el índice vectorial; datos de "
+                    "Pony API y Fandom bajo CC BY-SA 3.0."
+                ),
+            )
+        )
+        creados += 1
+    db.commit()
+    return creados
+
+
 def seed_if_empty(db: Session) -> dict:
-    """Indexa las fichas solo si la biblioteca está vacía (idempotente por hash)."""
-    if db.query(Document).count() > 0:
+    """Indexa las fichas o reconstruye el catálogo si la biblioteca está vacía."""
+    if db.query(Document).filter(Document.status != "error").count() > 0:
         return {"estado": "ya_indexada", "documentos": db.query(Document).count()}
+
+    # Una siembra interrumpida deja filas en error que bloquearían el reintento.
+    db.query(Document).filter(Document.status == "error").delete(
+        synchronize_session=False
+    )
+    db.commit()
+
+    hidratados = _hidratar_catalogo(db)
+    if hidratados:
+        return {
+            "estado": "catalogo_hidratado",
+            "documentos": db.query(Document).count(),
+            "filas": hidratados,
+        }
 
     files = sorted(SEED_DIR.glob("*.json"))
     created = 0
@@ -48,16 +95,20 @@ def seed_if_empty(db: Session) -> dict:
             continue  # se trata aparte: ver seed_contexto()
         items = json.loads(path.read_text(encoding="utf-8"))
         for item in items:
-            index_document(
-                db,
-                title=item["titulo"],
-                text=_format_ficha(item),
-                doc_type="ficha_narrativa",
-                source="semilla",
-                source_id=item["codigo"],
-                license_note=LICENSE,
-            )
-            created += 1
+            # Un fallo puntual (p. ej. red en el arranque) no aborta la siembra.
+            try:
+                index_document(
+                    db,
+                    title=item["titulo"],
+                    text=_format_ficha(item),
+                    doc_type="ficha_narrativa",
+                    source="semilla",
+                    source_id=item["codigo"],
+                    license_note=LICENSE,
+                )
+                created += 1
+            except Exception as exc:
+                print(f"[PonyArchive] ficha {item.get('codigo')} omitida: {exc}")
     return {"estado": "semilla_aplicada", "documentos": db.query(Document).count(), "fichas": created}
 
 
@@ -72,14 +123,17 @@ def seed_contexto(db: Session) -> dict:
         ya_existe = db.query(Document).filter(Document.title == item["titulo"]).first()
         if ya_existe:
             continue
-        index_document(
-            db,
-            title=item["titulo"],
-            text=item["texto"],
-            doc_type="nota_curso",
-            source="semilla",
-            source_id=item.get("codigo"),
-            license_note=LICENSE,
-        )
-        creadas += 1
+        try:
+            index_document(
+                db,
+                title=item["titulo"],
+                text=item["texto"],
+                doc_type="nota_curso",
+                source="semilla",
+                source_id=item.get("codigo"),
+                license_note=LICENSE,
+            )
+            creadas += 1
+        except Exception as exc:
+            print(f"[PonyArchive] nota {item.get('titulo')} omitida: {exc}")
     return {"estado": "notas_indexadas", "creadas": creadas}
