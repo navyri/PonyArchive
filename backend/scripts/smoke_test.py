@@ -170,7 +170,7 @@ def main() -> None:
          f"scope=mine: {len(items_mine)} docs, visible={not oculto_en_mios}")
     )
 
-    # 10. Contexto del curso (requisito del profesor: DEC-14, caso T11)
+    # 10. Contexto del curso (requisito del profesor: caso T11)
     r = httpx.post(
         f"{BASE}/api/chat",
         json={"question": "¿A Duvan Gomez le pega la esposa?"},

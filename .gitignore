@@ -23,3 +23,9 @@ backend/vectorstore/
 Thumbs.db
 .vscode/
 .idea/
+
+# --- Orientación interna (no es entregable) ---
+docs/guion-demo.md
+docs/checklist.md
+docs/decisiones.md
+docs/matriz-requisitos.md

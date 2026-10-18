@@ -6,7 +6,7 @@
 #
 # Requisitos previos en el host:
 #   * Docker Desktop en marcha
-#   * Ollama corriendo con el modelo (DEC-06):  ollama run qwen3.5:4b
+#   * Ollama corriendo con el modelo:  ollama run qwen3.5:4b
 #     El contenedor habla con él vía host.docker.internal:11434
 #
 # Los puertos 5173/8080/8180/5432 ya están ocupados por otros proyectos en esta
@@ -23,7 +23,7 @@ services:
       SECRET_KEY: ${SECRET_KEY:-ponyarchive-clave-de-desarrollo-cambiar-en-produccion}
       APP_ENV: ${APP_ENV:-prod}
       AUTH_PROVIDER: ${AUTH_PROVIDER:-local}
-      # Ollama vive en el host (modelo local, DEC-06)
+      # Ollama vive en el host (modelo local)
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3.5:4b}
       # El navegador entra por el 8081; aunque nginx hace de proxy, el CORS extra no estorba

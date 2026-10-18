@@ -106,7 +106,7 @@ def main() -> int:
             (data.get("answer", "") or "").split("\n")[0][:160],
         )
 
-        # 6. Contexto del curso exigido por el profesor (DEC-14, T11)
+        # 6. Contexto del curso exigido por el profesor (T11)
         r = c.post(
             "/api/chat",
             json={"question": "¿A Duvan Gomez le pega la esposa?"},
