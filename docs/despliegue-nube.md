@@ -1,7 +1,7 @@
 # Despliegue nube (M8) — checklist
 
 ## Listo y verificado
-- [x] Flags dual local/nube por variable de entorno (DEC-17): config.py + .env.example
+- [x] Flags dual local/nube por variable de entorno: config.py + .env.example
       - EMBEDDINGS_PROVIDER=local|openai, LLM_PROVIDER=ollama|openai, VECTOR_PROVIDER=chroma|qdrant
       - Defaults = pila local intacta (Ollama + Chroma + e5-small)
 - [x] embeddings.py con despacho por provider (import perezoso de torch)
