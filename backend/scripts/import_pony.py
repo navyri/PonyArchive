@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.database import SessionLocal, init_db
 from app.models import Document
 from app.seed import seed_if_empty
-from app.services.pony_api import import_characters, import_episodes
+from app.services.pony_api import import_characters, import_episodes, import_songs
 from app.services.vectorstore import count_chunks
 
 init_db()
@@ -29,6 +29,10 @@ try:
     t0 = time.time()
     personajes = import_characters(db)
     print("Personajes:", personajes, f"({round(time.time() - t0, 1)}s)")
+
+    t0 = time.time()
+    canciones = import_songs(db)
+    print("Canciones:", canciones, f"({round(time.time() - t0, 1)}s)")
 
     print("TOTAL documentos:", db.query(Document).count())
     print("TOTAL fragmentos vectoriales:", count_chunks())

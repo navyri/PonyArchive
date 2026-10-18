@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User
 from app.security import get_current_user
-from app.services.pony_api import import_characters, import_episodes
+from app.services.pony_api import import_characters, import_episodes, import_songs
 
 router = APIRouter(prefix="/import", tags=["importación"])
 
@@ -26,5 +26,13 @@ def trigger_episode_import(user: User = Depends(get_current_user), db: Session =
 def trigger_character_import(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         return import_characters(db)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Pony API no disponible: {exc}")
+
+
+@router.post("/songs")
+def trigger_song_import(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    try:
+        return import_songs(db)
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Pony API no disponible: {exc}")

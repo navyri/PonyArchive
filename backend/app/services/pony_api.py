@@ -1,9 +1,10 @@
 """Importación de Pony API (https://ponyapi.net/).
 
-Datos verificados: 243 episodios y 555 personajes. Los episodios no incluyen
-sinopsis ni moraleja; las fichas narrativas se redactan aparte. Licencia de los
-datos: CC BY-SA 3.0 (atribución obligatoria). Las rutas con "%20" devuelven 403:
-se usan IDs numéricos."""
+Datos verificados: 243 episodios, 555 personajes y 192 canciones. Los episodios
+no incluyen sinopsis ni las canciones su letra (derechos de autor); la prosa de
+personajes y las sinopsis se enriquecen con la wiki de Fandom. Fichas narrativas
+propias aparte. Licencia de los datos: CC BY-SA 3.0 (atribución obligatoria).
+Las rutas con "%20" devuelven 403: se usan IDs numéricos."""
 from __future__ import annotations
 
 import hashlib
@@ -13,10 +14,13 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.models import Document
-from app.services.fandom import fetch_synopsis, page_title_from_url
+from app.services.fandom import fetch_lead, fetch_synopsis, page_title_from_url
 from app.services.ingestion import index_document, remove_document
 
-LICENSE_NOTE = "CC BY-SA 3.0 — Pony API (metadatos) y wiki de Fandom mlp.fandom.com (sinopsis)"
+LICENSE_NOTE = (
+    "CC BY-SA 3.0 — Pony API (metadatos) y wiki de Fandom mlp.fandom.com "
+    "(sinopsis y descripciones)"
+)
 PAGE_SIZE = 100
 
 
@@ -64,12 +68,12 @@ def _episode_text(ep: dict, synopsis: str | None = None) -> str:
     return "".join(lines)
 
 
-def _character_text(ch: dict) -> str:
+def _character_text(ch: dict, lead: str | None = None) -> str:
     kinds = "; ".join(ch.get("kind", [])) or "No documentado"
     residence = (ch.get("residence", "") or "").replace("\n", "; ") or "No documentado"
     occupation = (ch.get("occupation", "") or "").replace("\n", "; ") or "No documentado"
     alias = ch.get("alias")
-    return (
+    text = (
         f"PERSONAJE de My Little Pony: Friendship Is Magic\n"
         f"Nombre: {ch.get('name', 'Sin nombre')}\n"
         f"Alias: {alias if alias else 'No tiene documentado'}\n"
@@ -78,6 +82,25 @@ def _character_text(ch: dict) -> str:
         f"Residencia: {residence}.\n"
         f"Ocupación: {occupation}.\n"
         f"Ficha de metadatos importada de Pony API.\n"
+    )
+    if lead:
+        # La prosa de la wiki distingue al personaje: sin ella, "¿Quién es X?"
+        # solo dispone de metadatos y el modelo rehúsa con razón.
+        text += f"\nDESCRIPCIÓN (wiki de Fandom, CC BY-SA 3.0):\n{lead}\n"
+    return text
+
+
+def _song_text(song: dict) -> str:
+    return (
+        f"CANCION de My Little Pony: Friendship Is Magic\n"
+        f"Título: {song.get('name', 'Sin título')}\n"
+        f"Episodio: {song.get('episode') or 'No documentado'}.\n"
+        f"Música: {song.get('musicby') or 'No documentado'}.\n"
+        f"Autoría de la letra: {song.get('lyricsby') or 'No documentado'}.\n"
+        f"Duración: {song.get('length') or 'No documentada'}.\n"
+        f"Tonalidad: {song.get('keysignature') or 'No documentada'}.\n"
+        f"Ficha de metadatos importada de Pony API. No incluye la letra "
+        f"(derechos de autor): la fuente enlazada es la página de Fandom.\n"
     )
 
 
@@ -163,23 +186,62 @@ def _upsert_library_doc(
 
 
 def import_characters(db: Session) -> dict:
+    """Importa los personajes de Pony API y les añade la entradilla de Fandom.
+
+    Idempotente por source_id (igual que los episodios): los que ya tienen la
+    descripción se omiten; los metadatos viejos se reemplazan una sola vez.
+    """
     characters = fetch_all("character/all", {"image": "none", "kind": "name"})
-    created = skipped = 0
+    created = updated = skipped = con_descripcion = 0
     for ch in characters:
-        text = _character_text(ch)
-        before = db.query(Document).count()
-        index_document(
+        lead = fetch_lead(page_title_from_url(ch.get("url", "")))
+        if lead:
+            con_descripcion += 1
+        outcome = _upsert_library_doc(
             db,
             title=str(ch.get("name", "Sin nombre")),
-            text=text,
+            text=_character_text(ch, lead),
             doc_type="personaje",
-            source="ponyapi",
             source_id=str(ch.get("id")),
             source_url=ch.get("url", ""),
-            license_note=LICENSE_NOTE,
         )
-        if db.query(Document).count() > before:
+        if outcome == "created":
             created += 1
+        elif outcome == "updated":
+            updated += 1
         else:
             skipped += 1
-    return {"descargados": len(characters), "indexados": created, "omitidos_duplicados": skipped}
+    return {
+        "descargados": len(characters),
+        "indexados": created,
+        "actualizados": updated,
+        "omitidos_duplicados": skipped,
+        "con_descripcion": con_descripcion,
+    }
+
+
+def import_songs(db: Session) -> dict:
+    """Importa las canciones de Pony API (metadatos verificados, sin letras)."""
+    songs = fetch_all("song/all")
+    created = updated = skipped = 0
+    for song in songs:
+        outcome = _upsert_library_doc(
+            db,
+            title=str(song.get("name", "Sin título")),
+            text=_song_text(song),
+            doc_type="cancion",
+            source_id=str(song.get("id")),
+            source_url=song.get("url", ""),
+        )
+        if outcome == "created":
+            created += 1
+        elif outcome == "updated":
+            updated += 1
+        else:
+            skipped += 1
+    return {
+        "descargadas": len(songs),
+        "indexadas": created,
+        "actualizadas": updated,
+        "omitidas": skipped,
+    }

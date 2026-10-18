@@ -27,7 +27,11 @@ async def lifespan(app: FastAPI):
         if contexto.get("creadas"):
             print(f"[PonyArchive] Contexto del curso: {contexto}")
         if settings.import_on_start:
-            from app.services.pony_api import import_characters, import_episodes
+            from app.services.pony_api import (
+                import_characters,
+                import_episodes,
+                import_songs,
+            )
 
             hay_episodios = (
                 db.query(Document).filter(Document.doc_type == "episodio").count() > 0
@@ -40,9 +44,11 @@ async def lifespan(app: FastAPI):
             else:
                 episodios = import_episodes(db)
                 personajes = import_characters(db)
+                canciones = import_songs(db)
                 print(
                     f"[PonyArchive] import_on_start: episodios={episodios}, "
-                    f"personajes={personajes}, documentos={db.query(Document).count()}"
+                    f"personajes={personajes}, canciones={canciones}, "
+                    f"documentos={db.query(Document).count()}"
                 )
     finally:
         db.close()
