@@ -95,12 +95,13 @@
 <!-- ═════════ 1 ═════════ -->
 <h2>1. Nombre del proyecto e integrantes</h2>
 <p><strong>Proyecto:</strong> PonyArchive — biblioteca inteligente de la serie
-<em>My Little Pony: Friendship Is Magic</em> con una función especial, el <em>Friendship Journal</em>
-(consulta temática y comparación de episodios y personajes).</p>
+<em>My Little Pony: Friendship Is Magic</em> (generación G4, 2010-2019), centrada en un
+<strong>agente RAG</strong> (LangChain + LangGraph) que responde sobre su corpus indexado con las
+fuentes citadas y rechazo explícito cuando la evidencia no alcanza.</p>
 <p><strong>Integrante:</strong> Mariana Lemus Esguerra (trabajo individual, conforme a DEC-01).</p>
 <p>El sistema responde preguntas sobre la serie usando <strong>exclusivamente documentos indexados</strong>
-(episodios, personajes, fichas narrativas propias, notas de contexto del curso y archivos subidos por cada
-usuario). Cuando no hay evidencia suficiente, <strong>rechaza explícitamente</strong> con la frase literal
+(episodios, personajes, canciones, fichas narrativas propias, notas de contexto del curso y archivos subidos
+por cada usuario). Cuando no hay evidencia suficiente, <strong>rechaza explícitamente</strong> con la frase literal
 exigida por el enunciado, en lugar de inventar.</p>
 
 <!-- ═════════ 2 ═════════ -->
@@ -117,7 +118,8 @@ previo del modelo de lenguaje. El problema práctico es doble:</p>
   pregunta.»</span> en lugar de generar una respuesta plausiblemente falsa.</li>
 </ol>
 <p>El dominio elegido — <em>Friendship Is Magic</em> — aporta un corpus amplio y verificable
-(243 episodios y 555 personajes descargados de la Pony API pública) y permite, además, un caso real de
+(243 episodios, 555 personajes y 192 canciones descargados de la Pony API pública, con prosa de la wiki
+de Fandom) y permite, además, un caso real de
 <strong>conocimiento de contexto</strong>: datos que el equipo conoce por la asignatura pero que no están
 en ningún documento público (ver §7, <em>notas de contexto del curso</em>).</p>
 <p>Sobre el formato: se usa código Python (LangChain/LangGraph) tal como exige el enunciado; están
@@ -127,10 +129,10 @@ prohibidos los constructores visuales (n8n, Zapier, Make, Flowise, Botpress) y n
 <h2>3. Arquitectura general y diagrama de arquitectura</h2>
 <p>El sistema son tres piezas desacopladas más un servicio externo opcional:</p>
 <ul>
-  <li><strong>Backend</strong> (FastAPI + LangGraph): API REST con 16 endpoints, autenticación JWT,
+  <li><strong>Backend</strong> (FastAPI + LangGraph): API REST con 17 endpoints, autenticación JWT,
   pipeline de ingesta y el grafo del agente.</li>
-  <li><strong>Frontend</strong> (React + Vite + TypeScript): interfaz con chat, documentos, historial y
-  Friendship Journal; habla exclusivamente con el backend mediante <code>/api</code>.</li>
+  <li><strong>Frontend</strong> (React + Vite + TypeScript): interfaz con chat, documentos e historial;
+  habla exclusivamente con el backend mediante <code>/api</code>.</li>
   <li><strong>Persistencia:</strong> SQLite (usuarios, documentos, conversaciones, mensajes) y ChromaDB
   (fragmentos + vectores) en disco.</li>
   <li><strong>Modelo local:</strong> Ollama corriendo en el portátil del equipo; el backend lo consumió
@@ -196,7 +198,7 @@ routers/         # auth, chat, documents, library, importer, health
     <tr><td>Chat</td><td><code>POST /api/chat</code>, <code>GET /api/chat/conversations</code>, <code>GET /api/chat/conversations/{id}</code>, <code>DELETE /api/chat/conversations/{id}</code></td><td>El POST ejecuta el grafo</td></tr>
     <tr><td>Documentos</td><td><code>POST /api/documents</code>, <code>GET /api/documents</code>, <code>DELETE /api/documents/{id}</code></td><td>Carga .txt/.md y borrado (204)</td></tr>
     <tr><td>Biblioteca</td><td><code>GET /api/library/characters</code>, <code>GET /api/library/episodes</code>, <code>GET /api/library/documents/{id}</code></td><td>Personajes, episodios y detalle de documento</td></tr>
-    <tr><td>Importación</td><td><code>POST /api/import/episodes</code>, <code>POST /api/import/characters</code></td><td>Desde la Pony API</td></tr>
+    <tr><td>Importación</td><td><code>POST /api/import/episodes</code>, <code>POST /api/import/characters</code>, <code>POST /api/import/songs</code></td><td>Desde la Pony API</td></tr>
     <tr><td>Infra</td><td><code>GET /health</code></td><td>Estado, modelo, <code>auth_provider</code> y fragmentos indexados</td></tr>
   </tbody>
 </table>
@@ -238,7 +240,7 @@ en código Python en <code>backend/app/agents/graph.py</code>.</p>
 <table>
   <thead><tr><th style="width:24%">Nodo</th><th>Función</th></tr></thead>
   <tbody>
-    <tr><td><code>validate_intent</code></td><td>Clasifica la intención con el LLM (<code>dominio</code>, <code>catalogo</code>, <code>fuera_de_dominio</code>) y propone filtros (tipo de documento, título, tema) con valores por defecto seguros</td></tr>
+    <tr><td><code>validate_intent</code></td><td>Clasifica la intención con el LLM (<code>factual</code>, <code>tematica</code>, <code>comparacion</code>, <code>catalogo</code>, <code>meta</code>, <code>fuera_de_dominio</code>, <code>ambigua</code>) y propone filtros (tipo de documento, título, tema) con valores por defecto seguros; tres correcciones <strong>deterministas sin LLM</strong>: preguntas sobre el propio agente (E7), recuentos de temporadas/canciones → <code>catalogo</code> y títulos documentados citados literalmente que anulan un <code>fuera_de_dominio</code> erróneo</td></tr>
     <tr><td><code>retrieve</code></td><td>Búsqueda vectorial en Chroma con filtro de visibilidad; prioriza los documentos subidos por el usuario (+0,05 de bonificación) y hace una búsqueda general complementaria siempre que haya filtros</td></tr>
     <tr><td><code>evaluate_sufficiency</code></td><td>Decide si hay evidencia: umbral de similitud y reglas por tipo de documento; si no la hay, marca <code>refused</code> con la frase literal</td></tr>
     <tr><td><code>catalog_query</code></td><td>Para consultas de conteo/católogo, responde con SQL sobre SQLite (E7) sin pasar por el LLM</td></tr>
@@ -294,17 +296,20 @@ esposa y lo deja morado» (fuente citada, similitud 0,904) — sin introducir co
   <li><strong>Parámetros:</strong> <code>TOP_K=6</code> fragmentos por consulta y
   <code>SIMILARITY_THRESHOLD=0.62</code> (calibrado con preguntas de prueba). La distancia de Chroma se
   convierte a similitud (<code>1 - distancia</code>).</li>
-  <li><strong>Escala actual:</strong> 816 documentos → <strong>819 fragmentos</strong> en local
-  (814 en el contenedor Docker tras importar la Pony API + semillas).</li>
+  <li><strong>Escala actual:</strong> 1.015 documentos → <strong>3.100 fragmentos</strong> en local
+  (243 episodios, 555 personajes con prosa de Fandom, 192 canciones, fichas narrativas, notas de
+  contexto y documentos subidos; la E2E de compose del 2026-10-17 registró 814 fragmentos antes de
+  estas ampliaciones).</li>
 </ul>
 
 <!-- ═════════ 9 ═════════ -->
 <h2>9. Proceso de carga de documentos</h2>
 <p>Hay tres vías de entrada, todas con el mismo pipeline final:</p>
 <ol>
-  <li><strong>Importación del catálogo</strong> (<code>POST /api/import/episodes|characters</code> o
+  <li><strong>Importación del catálogo</strong> (<code>POST /api/import/episodes|characters|songs</code> o
   <code>scripts/import_pony.py</code>): descarga de la Pony API con reintentos y paginación, normaliza
-  campos y genera un texto por registro.</li>
+  campos, genera un texto por registro y lo enriquece con la wiki de Fandom (sinopsis de episodios y
+  descripción de personajes, CC BY-SA).</li>
   <li><strong>Semillas en el arranque</strong> (<code>seed.py</code>): 10 fichas narrativas propias
   (DEC-10, redacción propia porque la API no tiene campos narrativos) y las notas de contexto del curso
   (DEC-14). Idempotentes: no duplican si ya existen.</li>
@@ -331,7 +336,7 @@ ejecución de la importación omite los 798 duplicados: la ingesta es <strong>id
     <tr><td><strong>E3</strong></td><td>Prompt restringido</td><td><code>generate</code> ordena responder solo con el contexto recuperado, citar con <code>[n]</code> y no completar con conocimiento previo</td></tr>
     <tr><td><strong>E4</strong></td><td>Rechazo literal</td><td>Mensaje fijo exacto: «No tengo suficiente información en mi base de conocimiento para responder esa pregunta.» (casos T04/T05)</td></tr>
     <tr><td><strong>E5</strong></td><td>Fuentes obligatorias</td><td>La respuesta viaja con su lista de fuentes (título, tipo, similitud); la UI las muestra y un giro sin fuentes se considera inválido</td></tr>
-    <tr><td><strong>E6</strong></td><td>Verificación de entidades</td><td><code>validate_answer</code> comprueba que las entidades/cifras citadas aparecen en el contexto; si no, deriva al rechazo</td></tr>
+    <tr><td><strong>E6</strong></td><td>Verificación de entidades</td><td><code>validate_answer</code> comprueba que las entidades/cifras citadas aparecen en el contexto (tolerando la traducción del nombre común: basta la última palabra distintiva — «Princesa Celestia» → «celestia»); si no, deriva al rechazo</td></tr>
     <tr><td><strong>E7</strong></td><td>Conteos por SQL</td><td>Las preguntas de catálogo (conteos, listados) se responden con consultas a SQLite, sin generación text</td></tr>
   </tbody>
 </table>
@@ -449,7 +454,10 @@ demostración.</p>
   <tbody>
     <tr><td>Python 3.14 muy nuevo para langgraph/chromadb/sentence-transformers</td><td>Resuelto: instalación conjunta verificada y dependencias fijadas (R-02)</td></tr>
     <tr><td>qwen3.5 devolvía solo razonamiento vacío</td><td><code>reasoning=False</code> y temperatura baja en el paso de generación (DEC-12)</td></tr>
-    <tr><td>Búsqueda por título inoperante (<code>$contains</code> multi-token en Chroma)</td><td>Filtro por título preprocesado/tolerante en <code>vectorstore.py</code></td></tr>
+    <tr><td>Búsqueda por título devolvía 0 resultados</td><td>El <code>where</code> de Chroma aplicaba <code>$contains</code> al título (incompatible, incluso monopalabra) y anulaba la búsqueda → el título se filtra ahora en Python sobre <code>k×5</code> candidatos; sin esto, toda comparación se rechazaba (bug confirmado 2026-10-18)</td></tr>
+    <tr><td>«¿Quién es Discord?» se rechazaba estando documentado</td><td>Las fichas de personaje de la Pony API solo contenían metadatos → cada personaje se enriquece con su entradilla de Fandom (CC BY-SA); su ficha pasa a ser el top-1 de la recuperación (bug confirmado 2026-10-18)</td></tr>
+    <tr><td>Episodio documentado clasificado como fuera de dominio</td><td>«The Fault in Our Cutie Marks» no la reconocía el clasificador pequeño → si la pregunta cita literalmente un título documentado, se anula <code>fuera_de_dominio</code> y se acota la recuperación al título (determinista, sin LLM)</td></tr>
+    <tr><td>192 canciones de la Pony API sin importar</td><td>Nuevo <code>doc_type=cancion</code> con upsert idempotente (metadatos sin letra por derechos de autor) y recuento de canciones resuelto con E7</td></tr>\n    <tr><td>Respuestas con nombres traducidos rechazadas por E6</td><td>El LLM escribe «Princesa Celestia» mientras el corpus está en inglés («Princess Celestia»), y la verificación de entidades las daba por no soportadas → la regla de generación pide nombres propios literales y E6 acepta la última palabra distintiva si consta en el contexto (bug confirmado 2026-10-18)</td></tr>
     <tr><td>Documento recién subido no recuperable</td><td>Deduplicación <strong>por usuario</strong>: la global descartaba la carga nueva (caso T07)</td></tr>
     <tr><td>Documento de otro usuario visible como «Tuyo»</td><td>Listado con <code>or_(user_id == usuario, user_id IS NULL/-1)</code>; caso T10b</td></tr>
     <tr><td>Pregunta sobre documento propio rechazada</td><td>La intención <code>fuera_de_dominio</code> ahora <strong>recupera antes de decidir</strong> y acepta evidencia de documentos subidos o notas de contexto (caso T11)</td></tr>

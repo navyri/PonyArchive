@@ -16,8 +16,8 @@ Todo se ejecuta contra `http://localhost:5174` (frontend) y `http://127.0.0.1:80
 
 ## 1 · Tema y arquitectura (~1,5 min) ✔ "Presentación del tema y de la arquitectura"
 
-- Tema: biblioteca inteligente de **My Little Pony: Friendship Is Magic** (2010–2019, G4). Corpus: 821 documentos / 2.862 fragmentos (243 episodios, 555 personajes, 10 fichas narrativas, sinopsis de Fandom CC BY-SA y 1 nota de contexto del curso).
-- Diapositiva de arquitectura: React + Vite + TS (frontend) → FastAPI (16 endpoints) → **grafo LangGraph** (valida intención → recupera → evalúa suficiencia → genera o rechaza → persiste) → ChromaDB + Ollama `qwen3.5:4b` + embeddings `multilingual-e5-small`.
+- Tema: biblioteca inteligente de **My Little Pony: Friendship Is Magic** (2010–2019, G4). Corpus: 1.015 documentos / 3.100 fragmentos (243 episodios, 555 personajes con descripción de Fandom CC BY-SA, 192 canciones, 10 fichas narrativas propias y 1 nota de contexto del curso).
+- Diapositiva de arquitectura: React + Vite + TS (frontend) → FastAPI (17 endpoints) → **grafo LangGraph** (valida intención → recupera → evalúa suficiencia → genera o rechaza → persiste) → ChromaDB + Ollama `qwen3.5:4b` + embeddings `multilingual-e5-small`.
 - Frase clave: *"El agente no responde de memoria: solo con lo que hay indexado, y si no hay evidencia, lo dice."*
 
 ## 2 · Login y frontend (~1 min) ✔ "Inicio de sesión del usuario y ejecución del frontend"

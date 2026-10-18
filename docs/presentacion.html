@@ -363,12 +363,12 @@
       <span class="flow-arrow">-&gt;</span>
       <div class="flow-step" style="--tint:var(--lilac)">
         <span class="t">Backend FastAPI</span>
-        <span class="d">16 endpoints · JWT<br>grafo LangGraph</span>
+        <span class="d">17 endpoints · JWT<br>grafo LangGraph</span>
       </div>
       <span class="flow-arrow">-&gt;</span>
       <div class="flow-step" style="--tint:var(--rose)">
         <span class="t">ChromaDB + SQLite</span>
-        <span class="d">2.862 fragmentos<br>usuarios y conversaciones</span>
+        <span class="d">3.100 fragmentos<br>usuarios y conversaciones</span>
       </div>
       <span class="flow-arrow">-&gt;</span>
       <div class="flow-step" style="--tint:var(--ink)">
@@ -406,7 +406,7 @@
         <tr><td><strong>Embeddings</strong></td><td><code>multilingual-e5-small</code> (384 d)</td><td>Multilingüe: rinde en español</td></tr>
         <tr><td><strong>Vectorial</strong></td><td>ChromaDB persistente</td><td>Embebida, sin servidor externo</td></tr>
         <tr><td><strong>Frontend</strong></td><td>React + Vite + TypeScript</td><td>Ligero; build con <code>tsc</code> + vite sin errores</td></tr>
-        <tr><td><strong>Datos</strong></td><td>Pony API + Fandom (CC BY-SA)</td><td>243 episodios · 555 personajes · sinopsis</td></tr>
+        <tr><td><strong>Datos</strong></td><td>Pony API + Fandom (CC BY-SA)</td><td>243 episodios · 555 personajes · 192 canciones · prosa de Fandom</td></tr>
       </tbody>
     </table>
     <p class="muted">Secretos en <code>.env</code> (nunca en el repo) · código bajo licencia MIT · dependencias fijadas.</p>
@@ -485,8 +485,9 @@ g.add_conditional_edges("evaluate_sufficiency",
     <p class="muted" style="margin-top:0.8em"><strong>Consulta:</strong> <code>TOP_K=6</code> · umbral <code>0.62</code> · bonificación +0,05 a los documentos propios recién subidos.</p>
   </div>
   <aside class="notes">
-    Estado actual: 2.862 fragmentos (820 documentos), con sinopsis de Fandom (CC BY-SA). Si preguntan
-    por PDF: el pipeline admite cualquier texto extraído.
+    Estado actual: 3.100 fragmentos (1.015 documentos: 243 episodios, 555 personajes con
+    descripción de Fandom, 192 canciones, fichas narrativas, subidos y notas), CC BY-SA.
+    Si preguntan por PDF: el pipeline admite cualquier texto extraído.
   </aside>
 </section>
 

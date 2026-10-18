@@ -24,7 +24,7 @@
 | D02 | [x] | Diagrama de arquitectura generado en `docs/arquitectura.png` (2480×1760, Edge headless, sin solapamientos) | — |
 | D03 | [x] | Modelo de datos en `backend/app/models.py` (User, Document, Chunk-free: fragmentos en Chroma, Conversation, Message) | — |
 | D04 | [x] | Estado y nodos LangGraph en `backend/app/agents/state.py` y `graph.py` (validate_intent→retrieve→evaluate_sufficiency→generate/validate_answer/reject→catalog_query→persist) | — |
-| D05 | [~] | Contratos recogidos en `docs/matriz-requisitos.md` (21 endpoints implementados y responden en `/docs`) | Falta revisar clasificación pública/privada con el profesor (R-04) |
+| D05 | [~] | Contratos recogidos en `docs/matriz-requisitos.md` (17 endpoints implementados y responden en `/docs`) | Falta revisar clasificación pública/privada con el profesor (R-04) |
 | D06 | [~] | Repositorio git creado: 2 commits locales (`aa4f435`, `c967e62`), `.gitignore` y estructura = Anexo A (backend/frontend con `Dockerfile`, `docker-compose.yml` en la raíz) | Falta `remote` + push a GitHub (E01) |
 | D07 | [x] | `.env.example` en la raíz con todas las variables documentadas (sin secretos); `backend\.env` real local | — |
 
@@ -34,7 +34,7 @@
 |----|--------|-----------|------------------------|
 | V01 | [x] | Ollama v0.40.5 instalado; `qwen3.5:4b` descargado y sirviendo (67 tok/s GPU RTX 4070); primera generación ~45 s, después 3–18 s | — |
 | V02 | [x] | Embeddings `intfloat/multilingual-e5-small` (384 dims) ejecutados vía sentence-transformers | — |
-| V03 | [x] | ChromaDB persistente conectada: 819 fragmentos indexados en `backend\vectorstore` (incluye notas de contexto); en Docker: 814 fragmentos | — |
+| V03 | [x] | ChromaDB persistente conectada: 3.100 fragmentos indexados en `backend\vectorstore` (incluye notas de contexto y 192 canciones; la E2E en Docker registró 814 antes de estas ampliaciones) | — |
 | V04 | [x] | RAG completo verificado con `smoke_test.py` → **12/12**: recuperación, umbral, rechazo explícito y contexto del curso (T11) | — |
 | V05 | [ ] | — | — |
 | V06 | [ ] | — | — |
@@ -49,7 +49,7 @@
 | B03 | [x] | `GET /api/chat` sin token → 401 verificado en smoke | — |
 | B04 | [x] | Historial por usuario: `GET /api/chat/conversations` devuelve solo las del usuario (verificado en smoke, caso B04) | — |
 | B05 | [x] | Aislamiento de documentos entre usuarios verificado en smoke (T10): el usuario no ve cargas ajenas (`visible_to`/`user_id` en filtros) | — |
-| B06 | [x] | FastAPI con 21 endpoints operativos; `GET /health` responde estado, modelo, auth_provider y chunks indexados | — |
+| B06 | [x] | FastAPI con 17 endpoints operativos; `GET /health` responde estado, modelo, auth_provider y chunks indexados | — |
 
 ## FASE 4 — Datos y documentos
 
@@ -58,8 +58,8 @@
 | K01 | [x] | `GET /v1/episode/all` → 243 · `/character/all` → 555 · `/song/all` → 192 · HTTP 200 · CORS `*` · SQLite 999 KB disponible | — |
 | K02 | [~] | Datos CC BY-SA 3.0, código MIT; último update 2020-04-30; path con `%20` → 403 (usar IDs o `_`); sin campos narrativos | Falta decidir y documentar atribución en README |
 | K03 | [x] | Cliente `backend/app/services/pony_api.py` con reintentos y paginación | — |
-| K04 | [x] | Normalización e importación funcionando: `python scripts\import_pony.py` → 243 episodios + 555 personajes indexados sin duplicados (2ª ejecución: 798 omitidos) | — |
-| K05 | [x] | Fragmentación en `services/ingestion.py` (813 fragmentos, deduplicación por `content_hash`) | — |
+| K04 | [x] | Normalización e importación funcionando: `python scripts\import_pony.py` → 243 episodios + 555 personajes + 192 canciones indexados sin duplicados; 2ª ejecución (2026-10-18, con prosa de Fandom y canciones): **989 omitidos** | — |
+| K05 | [x] | Fragmentación en `services/ingestion.py` (3.100+ fragmentos tras la importación de Pony API, deduplicación por `content_hash`) | — |
 | K06 | [x] | **Campos narrativos NO existen en la API**: 10 fichas narrativas propias creadas en `backend/data/seed/fichas_narrativas.json` y sembradas | — |
 | K07 | [x] | Carga de documentos (`POST /api/documents`, txt/md) → 201 e indexado; verificado en smoke (T07/K07) | — |
 | K08 | [x] | Biblioteca consultable: `GET /api/library` con filtros tipo/título/tema y paginación | — |
@@ -80,7 +80,7 @@
 | A06 | [x] | Persistencia de conversaciones por usuario (`persist` del grafo) | — |
 | A07 | [x] | **≥2 estrategias anti-alucinación (§3.4)**: 7 implementadas (E1 umbral 0.62, E2 nodo de suficiencia, E3 prompt restringido, E4 rechazo literal, E5 fuentes obligatorias, E6 verificación de entidades, E7 conteos por SQL) — ver `docs/decisiones.md` | — |
 | A08 | [~] | Clasificación de intención (RAG vs. consulta de catálogo) en `validate_intent`/`catalog_query` | Cobertura de categorías sin test sistemático |
-| A09 | [-] | Friendship Journal **retirado del alcance** el 2026-10-18 (propuesta [P], no requisito del enunciado): router, UI y endpoints eliminados; las etiquetas temáticas se conservan como estrategia de recuperación del grafo | DEC-19 |
+| A09 | [-] | Friendship Journal **retirado del alcance** el 2026-10-18 (propuesta [P], no requisito del enunciado): router, UI y endpoints eliminados; las etiquetas temáticas se conservan como estrategia de recuperación del grafo | DEC-18 |
 | A11 | [ ] | — | Mejora opcional (no la exige el PDF) |
 
 ## FASE 6 — Frontend

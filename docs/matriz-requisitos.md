@@ -63,7 +63,7 @@ Leyenda de tipo: **[O]** requisito obligatorio del profesor · **[D]** decisión
 
 | # | Diferencia | Resolución (PDF manda) |
 |---|-----------|------------------------|
-| 1 | El PDF no menciona Friendship Journal, comparación de episodios ni 10–15 fichas | Son **[P] propuestas del proyecto**, no requisitos. Friendship Journal **retirado del alcance** el 2026-10-18 (DEC-19). No se presentan como aprobadas |
+| 1 | El PDF no menciona Friendship Journal, comparación de episodios ni 10–15 fichas | Son **[P] propuestas del proyecto**, no requisitos. Friendship Journal **retirado del alcance** el 2026-10-18 (DEC-18). No se presentan como aprobadas |
 | 2 | El PDF sugiere formatos multimedia (JPG, MP4, MP3) | Es "sugerido", no obligatorio. El alcance actual los deja fuera: **sin conflicto** |
 | 3 | A11 (inyección de instrucciones en documentos) no está en el PDF | **[M]** mejora opcional, se mantiene si hay tiempo |
 | 4 | §5.3: la sustentación es **presencial** | Condiciona que el modelo corra en el portátil durante la demo |

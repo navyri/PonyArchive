@@ -2,7 +2,7 @@
 
 **Biblioteca inteligente de *My Little Pony: Friendship Is Magic* con un agente RAG (LangChain + LangGraph), modelo local en Ollama y una base vectorial propia.**
 
-El agente responde preguntas sobre los 243 episodios y 555 personajes de la serie a partir de su propia base de conocimiento indexada, muestra las fuentes recuperadas con su similitud y **se niega a responder** cuando la evidencia no alcanza. Incluye autenticación con JWT, historial por usuario, carga de documentos y despliegue en la nube (0 USD).
+El agente responde preguntas sobre los 243 episodios, 555 personajes y 192 canciones de la serie a partir de su propia base de conocimiento indexada, muestra las fuentes recuperadas con su similitud y **se niega a responder** cuando la evidencia no alcanza. Incluye autenticación con JWT, historial por usuario, carga de documentos y despliegue en la nube (0 USD).
 
 Repositorio: https://github.com/navyri/PonyArchive
 
@@ -32,7 +32,7 @@ npm install
 npm run dev                     # http://localhost:5173
 ```
 
-Al arrancar, el backend importa automáticamente los episodios y personajes desde [Pony API](https://github.com/PonyAPI/mlp-fim-api) y los enriquece con las sinopsis de la [wiki de Fandom](https://mlp.fandom.com) (CC BY-SA). La primera arrancada tarda ~3–5 min (importa 243 episodios + 555 personajes); posteriores lo omiten si ya están indexados.
+Al arrancar, el backend importa automáticamente episodios, personajes y canciones desde [Pony API](https://github.com/PonyAPI/mlp-fim-api) y los enriquece con la [wiki de Fandom](https://mlp.fandom.com) (CC BY-SA): sinopsis de los episodios y descripción de los personajes. La primera arrancada en una BD vacía tarda ~8–10 min (243 episodios + 555 personajes + 192 canciones); posteriores lo omiten si ya están indexados.
 
 ## Características
 
