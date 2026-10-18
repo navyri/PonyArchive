@@ -1,6 +1,6 @@
 # PonyArchive — Registro de decisiones, bloqueos, riesgos y pruebas
 
-Actualizado: 2026-10-17 (Fases 0–7: backend + agente + frontend + Docker operativos, smoke 12/12 y e2e compose completo)
+Actualizado: 2026-10-18 (Fases 0–8: backend + agente + frontend + Docker operativos, smoke 12/12, Journal retirado, correcciones del agente verificadas y entregables `docs/` regenerados)
 
 ## 1. Decisiones
 
@@ -10,7 +10,7 @@ Actualizado: 2026-10-17 (Fases 0–7: backend + agente + frontend + Docker opera
 | DEC-02 | Fecha de entrega: **2026-10-18 (mañana)** | [D] dato fijado | Respuesta del equipo | — |
 | DEC-03 | Presupuesto de despliegue: **0 USD** (solo free tiers) | [D] aprobada | Respuesta del equipo | Plan de pago, VM con GPU (5–15 USD/mes) |
 | DEC-04 | Frontend: **React + Vite + TypeScript** | [D] aprobada | Más ligero; un solo backend que desplegar | Next.js (SSR innecesario) |
-| DEC-05 | Autenticación: **Keycloak en Docker** | [D] aprobada **con riesgo R-03** | Elección explícita del equipo; el PDF lo recomienda | JWT propio (más simple con 0 USD), Supabase Auth |
+| DEC-05 | Autenticación: **Keycloak en Docker** | [D] aprobada **con riesgo R-03**; **superada** → ver R-03 y §4 (opción 3: JWT propio operativo, Keycloak como flag) | Elección explícita del equipo; el PDF lo recomienda | JWT propio (más simple con 0 USD), Supabase Auth |
 | DEC-06 | Modelo: **Ollama en el portátil + túnel autenticado** hacia el backend en la nube | [D] aprobada | Coste 0 USD; demo presencial; RTX 4070 disponible | VM con GPU en la nube, modelo en CPU remoto |
 | DEC-07 | Backend: **FastAPI** | [D] decidida | Encaja con LangChain (Python); implementado en `backend/app` (21 endpoints) | NestJS, Flask, Django |
 | DEC-08 | Base vectorial: **ChromaDB** persistente en disco | [D] decidida | Nativa de Python, sin servicio externo (0 USD); 813 fragmentos indexados | FAISS, Qdrant, pgvector |
@@ -22,10 +22,13 @@ Actualizado: 2026-10-17 (Fases 0–7: backend + agente + frontend + Docker opera
 | DEC-14 | **Notas de contexto del curso** indexadas como `doc_type="nota_curso"` (`backend/data/seed/contexto_curso.json`, semilla idempotente `seed_contexto()`) | [D] decidida | El profesor exige que el agente responda con fundamento preguntas de contexto del aula (p. ej. Duvan Gomez); la evidencia de dominio en `evaluate_sufficiency` acepta `upload` o `nota_curso` | Hardcodear la respuesta (alucinación encubierta), subirla como documento de usuario (no visible a todos) |
 | DEC-15 | **Docker**: backend `python:3.12-slim` con el modelo de embeddings horneado, frontend `node → nginx` con proxy, `docker-compose.yml` en la raíz (puertos 8010/8081 por estar 5173/8080 ocupados) | [D] decidida | Requisito Anexo A; reproduce el despliegue en un solo comando | Solo imágenes oficiales (el modelo e5-small pesa poco y evita una descarga en cada arranque) |
 | DEC-16 | La semilla (`data/seed`) se copia a **`/app/seed`, fuera del volumen de datos** (`PONYARCHIVE_SEED_DIR`) | [D] decidida | `docker-compose` monta un volumen en `/app/data` y enmascararía la semilla de la imagen (bug reproducido: `seed_contexto` devolvía `sin_notas`) | Recrear el volumen en cada arranque (perdería la biblioteca importada) |
+| DEC-17 | **Despliegue en nube**: Qdrant Cloud + OpenAI (embeddings y LLM), frontend en Vercel y backend en Render (free tiers); flags duales `EMBEDDINGS_PROVIDER` / `LLM_PROVIDER` / `VECTOR_PROVIDER` para conmutar local↔nube sin tocar código | [D] aprobada por el equipo | 0 USD (DEC-03) y sin GPU propia en la nube; los flags permiten demostrar ambas configuraciones | VM con GPU (5–15 USD/mes), Ollama por túnel (latencia frágil en la demo) |
+| DEC-18 | **Retirada de Friendship Journal** (temas y comparación de personajes) | [D] decidida | La función quedaba sin uso tras centrar el alcance en el chat RAG; se eliminan su UI, endpoints y lógica del agente (DEC-09 queda superada). Se conservan `themes.py`, el campo `theme` y el intent `comparacion` por si se retoman | Mantener la funcionalidad a medias (UI sin backend), dejarla oculta (código muerto en el repo, §1.2) |
+| DEC-19 | **Correcciones del agente tras revisión**: (1) el spinner de consulta solo aparece en la conversación activa; (2) las preguntas de temporadas/capítulos devuelven el desglose real (9 temporadas, 221 capítulos numerados + 22 especiales) vía `fetch_documents()` y no el conteo de tipos; (3) "¿qué preguntas puedes contestar?" se detecta de forma determinista (intent `meta`, patrones `META_PATTERNS`) y responde con el alcance fijo G4 sin invocar al LLM ni recuperar | [D] decidida | Tres fallos reportados en la demo de prueba; el intent `meta` evita que el LLM improvise una respuesta sobre su propio alcance | Responder con el LLM (no determinista), un único endpoint de catálogo (el desglose vive en el grafo) |
 
 ## 2. Bloqueos
 
-Ninguno activo a 2026-10-17.
+Ninguno activo a 2026-10-18. Pendientes externos: credenciales de nube (M8) y consulta al profesor sobre R-04.
 
 ## 3. Riesgos y deuda técnica
 
@@ -33,7 +36,7 @@ Ninguno activo a 2026-10-17.
 |----|--------|-----------|-------------------|---------|--------|
 | R-01 | **Entrega en 24 h** con un solo equipo | Respuesta del equipo | — | Crítico: hay que priorizar requisitos mínimos (§6.1) sobre pulido | Camino crítico: modelo → RAG → auth → chat → despliegue |
 | R-02 | Python 3.14 muy nuevo para el ecosistema ML | Instalado Python 3.14.2 | Instalación real completa: langgraph, chromadb, sentence-transformers, fastapi; backend funcionando y smoke 10/10 | **Resuelto** | Mantener versions fijadas en `requirements.txt` |
-| R-03 | **Keycloak con 0 USD y fecha corta**: necesita contenedor con ~512 MB+ y, en producción, un alojamiento que los free tiers suelen no cubrir | PDF §2.1 lo permite con otra solución; elección del equipo | Sin probar aún | Alto: si Keycloak no se aloja en la nube, la autenticación desplegada falla | Plan alternativo registrado abajo (§4). Decisión **pendiente de revisión el 17/10** |
+| R-03 | **Keycloak con 0 USD y fecha corta**: necesita contenedor con ~512 MB+ y, en producción, un alojamiento que los free tiers suelen no cubrir | PDF §2.1 lo permite con otra solución; elección del equipo | Resuelto aplicando el **plan alternativo §4 (opción 3)**: JWT propio operativo de extremo a extremo (`AUTH_PROVIDER=local`); Keycloak queda implementado como flag (`security.py` `_decode_keycloak` + JWKS) sin desplegar | Bajo: la auth desplegada no depende de Keycloak | Documentar en el doc técnico §auth; flag disponible si se retoma |
 | R-04 | Interpretación literal de "ningún endpoint sin autenticación" vs. rutas técnicas (OPTIONS, /health, login) | PDF §2.1 | Clasificación en 3 grupos propuesta en `matriz-requisitos.md` §7 | Medio: posible observación del evaluador | Consultar al profesor / documentar abiertamente |
 | R-05 | Posible conflicto `huggingface_hub` entre chromadb (≥2.x) y sentence-transformers (1.x) | Dry-runs separados mostraron versiones incompatibles | Instalación conjunta realizada y verificada: embeddings y ChromaDB operativos a la vez | **Resuelto** | Sin acción |
 | R-06 | ChromaDB sin disco persistente en Render free (se borra entre deploys) | Condiciones conocidas del free tier de Render | Sin probar | Alto para la persistencia (K11, T12) | Evaluar volumen persistente, Qdrant Cloud gratis o reindexar al arrancar |
@@ -82,11 +85,17 @@ Ninguna opción se aplicará sin comunicarlo y registrar el cambio aquí.
 | 2026-10-17 | **E2E de compose** | `python scripts\e2e_compose.py` contra `localhost:8010` (nginx → backend) | **TODO CORRECTO**: health, register 201, import 243+555 → 814 fragmentos, chat factual 6 fuentes, rechazo literal, journal 6 fuentes, contexto del curso respondido |
 | 2026-10-17 | Bug 3: semilla enmascarada por el volumen | `seed_contexto` devolvía `sin_notas` en el contenedor (el volumen `/app/data` ocultaba `/app/data/seed` de la imagen) | DEC-16: semilla en `/app/seed` + `PONYARCHIVE_SEED_DIR`; verificado con `creadas: 1` en el arranque |
 | 2026-10-17 | Bug 4: búsqueda general condicionada | Cuando el clasificador proponía un `doc_type` (243 episodios llenaban el `top_k`), se saltaba la búsqueda complementaria y se perdía la evidencia de dominio (T11 fallaba de forma intermitente) | `retrieve()` hace la búsqueda general **siempre** que haya filtros; verificado en local (12/12) y en compose (TODO CORRECTO) |
+| 2026-10-18 | Retirada de Friendship Journal (DEC-18) | Borrado de UI, endpoints y nodos del agente; `docker compose` y e2e ajustados | Backend 16 endpoints; frontend compila (`tsc -b && vite build`); e2e compose OK |
+| 2026-10-18 | Bug spinner global (DEC-19.1) | El spinner "Consultando la base de conocimiento" se activaba en todas las conversaciones | `pendingKeys`/`viewKey`/`busyHere` en `ChatPage.tsx` + guard `viewRef` al colgar la respuesta; verificado en navegador |
+| 2026-10-18 | Bug de catálogo (DEC-19.2) | "¿Cuántas temporadas/capítulos?" devolvía el conteo de tipos de documento | `fetch_documents(doc_type)` en `vectorstore.py` + `_season_breakdown()` en el grafo → desglose 9 temporadas / 221 capítulos + 22 especiales |
+| 2026-10-18 | Alcance fijo del agente (DEC-19.3) | "¿Qué tipo de preguntas puedes contestar?" producía respuesta variable del LLM | Intent `meta` con `META_PATTERNS` (determinista, antes del LLM) → `agent_info` devuelve `AGENT_SCOPE` fijo (G4, 2010-2019) sin recuperación |
+| 2026-10-18 | **Smoke test tras correcciones** | `python scripts\smoke_test.py` | **12/12 OK** (T11 Duvan afirmativo; rechazo literal intacto) |
+| 2026-10-18 | Verificación de las 3 consultas reportadas | `Temp\opencode\test_reported.py` contra `localhost:8000` | Temporadas → desglose correcto; alcance → `AGENT_SCOPE` G4; factual Twilight → respuesta con fuentes |
+| 2026-10-18 | Regeneración de entregables `docs/` | Edge headless `--print-to-pdf` | `documento-tecnico.pdf` 18 páginas OK; `presentacion.pdf` **9 páginas** (raíz del fallo: reveal.js inyecta `top:1px` en línea por lámina y `@media print` propio alteraba la tipografía; resuelto forzando `top:0` y aislando `reveal.css` a `media="screen"`) |
 
 ## 6. Próximo paso concreto
 
-**Objetivo:** E01/E02 — push del repositorio a GitHub (fechas reales, commits por fase) y generación de los entregables `docs/documento-tecnico.pdf` y `docs/presentacion.pdf`.
-**Archivos:** `README.md`, `docs/`, commits pendientes (Docker, tema oscuro, DEC-14/15/16).
-**Acción:** `git add` → `git commit` → verificar `gh auth status` → `git push`.
-**Criterio de aceptación:** `git log` muestra los commits con sus fechas reales y el repo remoto accesible.
-**Evidencia que debe compartir María:** salida de `git log --oneline` y URL del repo.
+**Objetivo:** cierre de la entrega del 2026-10-18.
+**Pendientes:** (1) commits granulares + push a `github.com/navyri/PonyArchive` (hay ~20 archivos sin commitear: Journal retirado, correcciones del agente, `render.yaml`, `docs/`); (2) despliegue nube M8 en cuanto María facilite `OPENAI_API_KEY`, `QDRANT_URL` y `QDRANT_API_KEY` (Render/Vercel/Qdrant Cloud) y re-ejecución del smoke contra la nube; (3) guion de la demo de 7–10 min (§1.4: login, chat con fuentes, rechazo, historial, grafo, evidencia de despliegue).
+**Criterio de aceptación:** `git log` muestra los commits con sus fechas reales y el repo remoto accesible; smoke 12/12 contra el backend desplegado.
+**Evidencia que debe compartir María:** salida de `git log --oneline`, URL del repo y URL del backend desplegado.

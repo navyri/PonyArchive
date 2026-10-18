@@ -80,8 +80,7 @@
 | A06 | [x] | Persistencia de conversaciones por usuario (`persist` del grafo) | — |
 | A07 | [x] | **≥2 estrategias anti-alucinación (§3.4)**: 7 implementadas (E1 umbral 0.62, E2 nodo de suficiencia, E3 prompt restringido, E4 rechazo literal, E5 fuentes obligatorias, E6 verificación de entidades, E7 conteos por SQL) — ver `docs/decisiones.md` | — |
 | A08 | [~] | Clasificación de intención (RAG vs. consulta de catálogo) en `validate_intent`/`catalog_query` | Cobertura de categorías sin test sistemático |
-| A09 | [x] | Friendship Journal implementado y **verificado**: `backend/app/routers/journal.py` (temas, comparación, consultas) + UI `JournalPage.tsx`; probado en navegador (tema "amistad" y comparación Twilight/Rainbow, 200 con fuentes) | — |
-| A10 | [x] | Comparación de episodios/personajes verificada en navegador y por API (`/api/journal/compare` → 200) | — |
+| A09 | [-] | Friendship Journal **retirado del alcance** el 2026-10-18 (propuesta [P], no requisito del enunciado): router, UI y endpoints eliminados; las etiquetas temáticas se conservan como estrategia de recuperación del grafo | DEC-19 |
 | A11 | [ ] | — | Mejora opcional (no la exige el PDF) |
 
 ## FASE 6 — Frontend
@@ -94,7 +93,6 @@
 | F04 | [x] | `frontend/src/pages/DocumentsPage.tsx`: subida (.txt/.md), listado con pestañas (Todos/Biblioteca/Míos) y filtro por título, borrado con confirmación; verificado en navegador (201 al subir, fila con "Tuyo", borrado con mensaje) | — |
 | F05 | [x] | Historial en la barra lateral del chat: lista, apertura de conversación y borrado; verificado en navegador (9 conversaciones, apertura carga los mensajes) | — |
 | F06 | [ ] | — | — |
-| F07 | [x] | Friendship Journal en `frontend/src/pages/JournalPage.tsx`: temas (11), consulta temática y comparación; verificado en navegador (POST 200, respuestas con fuentes) | — |
 | F08 | [ ] | — | — |
 
 ## FASE 7 — Pruebas integrales
@@ -103,7 +101,7 @@
 |----|--------|-----------|------------------------|
 | T01–T10, T10b, B04, T11 | [x] | `python scripts\smoke_test.py` → **12/12 OK** (2026-10-17): health, register, 401, T01 factual con fuentes, T04 rechazo fuera de dominio, T05 sin evidencia, historial B04, K07 carga, T07 pregunta sobre doc cargado, T10 aislamiento de recuperación, T10b aislamiento de listado, **T11 contexto del curso** | — |
 | T12 y pruebas de rendimiento/carga | [ ] | — | Sin iniciar |
-| E2E en Docker | [x] | `python scripts\e2e_compose.py` → **TODO CORRECTO** (2026-10-17): health vía nginx (814 fragmentos), register 201, import 243 episodios + 555 personajes, chat factual 6 fuentes, rechazo literal, journal 6 fuentes, contexto del curso respondido | — |
+| E2E en Docker | [x] | `python scripts\e2e_compose.py` → **TODO CORRECTO** (2026-10-17): health vía nginx (814 fragmentos), register 201, import 243 episodios + 555 personajes, chat factual 6 fuentes, rechazo literal, contexto del curso respondido | — |
 
 ## FASE 8 — Despliegue
 

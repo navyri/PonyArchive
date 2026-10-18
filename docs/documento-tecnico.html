@@ -127,7 +127,7 @@ prohibidos los constructores visuales (n8n, Zapier, Make, Flowise, Botpress) y n
 <h2>3. Arquitectura general y diagrama de arquitectura</h2>
 <p>El sistema son tres piezas desacopladas más un servicio externo opcional:</p>
 <ul>
-  <li><strong>Backend</strong> (FastAPI + LangGraph): API REST con 21 endpoints, autenticación JWT,
+  <li><strong>Backend</strong> (FastAPI + LangGraph): API REST con 16 endpoints, autenticación JWT,
   pipeline de ingesta y el grafo del agente.</li>
   <li><strong>Frontend</strong> (React + Vite + TypeScript): interfaz con chat, documentos, historial y
   Friendship Journal; habla exclusivamente con el backend mediante <code>/api</code>.</li>
@@ -183,20 +183,19 @@ No se usa ningún servicio comercial de pago: el presupuesto es 0 USD.</p>
 │   ├── models.py        # User, Document, Conversation, Message
 │   ├── security.py      # hash de contraseñas, emisión/verificación de JWT
 │   ├── seed.py          # semillas: fichas narrativas y notas de contexto
-│   ├── routers/         # auth, chat, documents, library, journal, importer, health
+routers/         # auth, chat, documents, library, importer, health
 │   ├── agents/          # state.py y graph.py (el grafo LangGraph)
 │   └── services/        # pony_api, ingestion, vectorstore, embeddings
 └── scripts/             # import_pony, smoke_test (12 casos), e2e_compose, debug_*</code></pre>
 
-<h3>Endpoints (21)</h3>
+<h3>Endpoints (16)</h3>
 <table>
   <thead><tr><th style="width:14%">Grupo</th><th style="width:52%">Rutas</th><th>Nota</th></tr></thead>
   <tbody>
     <tr><td>Auth</td><td><code>POST /api/auth/register</code>, <code>POST /api/auth/login</code>, <code>POST /api/auth/refresh</code>, <code>POST /api/auth/logout</code>, <code>GET /api/auth/me</code></td><td>Registro → 201 + token</td></tr>
     <tr><td>Chat</td><td><code>POST /api/chat</code>, <code>GET /api/chat/conversations</code>, <code>GET /api/chat/conversations/{id}</code>, <code>DELETE /api/chat/conversations/{id}</code></td><td>El POST ejecuta el grafo</td></tr>
     <tr><td>Documentos</td><td><code>POST /api/documents</code>, <code>GET /api/documents</code>, <code>DELETE /api/documents/{id}</code></td><td>Carga .txt/.md y borrado (204)</td></tr>
-    <tr><td>Biblioteca</td><td><code>GET /api/library</code>, <code>GET /api/library/documents/{id}</code></td><td>Filtros por tipo, título y tema</td></tr>
-    <tr><td>Journal</td><td><code>GET /api/journal/themes</code>, <code>POST /api/journal/query</code>, <code>POST /api/journal/compare</code>, <code>GET /api/journal/characters</code>, <code>GET /api/journal/episodes</code></td><td>Friendship Journal</td></tr>
+    <tr><td>Biblioteca</td><td><code>GET /api/library/characters</code>, <code>GET /api/library/episodes</code>, <code>GET /api/library/documents/{id}</code></td><td>Personajes, episodios y detalle de documento</td></tr>
     <tr><td>Importación</td><td><code>POST /api/import/episodes</code>, <code>POST /api/import/characters</code></td><td>Desde la Pony API</td></tr>
     <tr><td>Infra</td><td><code>GET /health</code></td><td>Estado, modelo, <code>auth_provider</code> y fragmentos indexados</td></tr>
   </tbody>
@@ -218,7 +217,6 @@ del smoke test (dos usuarios con cargas cruzadas).</p>
     <tr><td><code>/login</code></td><td><code>LoginPage</code></td><td>Registro e inicio de sesión; muestra errores del backend (p. ej. 422) con claridad</td></tr>
     <tr><td><code>/</code></td><td><code>ChatPage</code></td><td>Chat con fuentes (título, tipo y similitud), etiqueta «Sin evidencia suficiente» con la frase literal, sugerencias y barra lateral con el historial (abrir/borrar conversaciones)</td></tr>
     <tr><td><code>/documentos</code></td><td><code>DocumentsPage</code></td><td>Subida (.txt/.md), pestañas Todos/Biblioteca/Míos, filtro por título y borrado con confirmación</td></tr>
-    <tr><td><code>/journal</code></td><td><code>JournalPage</code></td><td>Friendship Journal: temas disponibles, consulta temática y comparación de episodios/personajes</td></tr>
   </tbody>
 </table>
 <p>Rutas protegidas: sin token, la aplicación redirige a <code>/login</code>; el token se guarda en
@@ -227,7 +225,7 @@ del smoke test (dos usuarios con cargas cruzadas).</p>
 paleta de Starlight Glimmer, pensado para la proyección de la demostración.</p>
 <p><strong>Verificación:</strong> <code>npm run build</code> (tsc + vite) sin errores y recorrido completo
 en navegador — registro, login/logout, chat con fuentes, rechazo, subida y borrado de documentos,
-historial y Journal (capturas en §13).</p>
+historial (capturas en §13).</p>
 
 <!-- ═════════ 7 ═════════ -->
 <h2 class="page-break">7. Descripción del agente y del flujo de LangGraph</h2>
@@ -411,8 +409,8 @@ demostración.</p>
   <thead><tr><th style="width:34%">Evidencia</th><th style="width:24%">Método</th><th>Resultado</th></tr></thead>
   <tbody>
     <tr><td>Smoke test automatizado (12 casos)</td><td><code>python scripts/smoke_test.py</code></td><td><span class="badge ok">12/12 OK</span></td></tr>
-    <tr><td>E2E sobre Docker</td><td><code>python scripts/e2e_compose.py</code></td><td><span class="badge ok">TODO CORRECTO</span> (health, registro, importación 243+555, chat con 6 fuentes, rechazo literal, journal, contexto del curso)</td></tr>
-    <tr><td>Recorrido en navegador</td><td>Frontend en dev + capturas</td><td><span class="badge ok">verificado</span> (4 capturas más abajo)</td></tr>
+    <tr><td>E2E sobre Docker</td><td><code>python scripts/e2e_compose.py</code></td><td><span class="badge ok">TODO CORRECTO</span> (health, registro, importación 243+555, chat con 6 fuentes, rechazo literal, contexto del curso)</td></tr>
+    <tr><td>Recorrido en navegador</td><td>Frontend en dev + capturas</td><td><span class="badge ok">verificado</span> (3 capturas más abajo)</td></tr>
     <tr><td>Build de frontend</td><td><code>npm run build</code></td><td><span class="badge ok">sin errores</span> (tsc + vite)</td></tr>
     <tr><td>Imágenes Docker</td><td><code>docker compose build</code></td><td><span class="badge ok">backend 4,24 GB · frontend 74 MB</span></td></tr>
   </tbody>
@@ -442,8 +440,6 @@ demostración.</p>
 <div class="caption">Figura 3. Rechazo explícito con la frase literal.</div></figure>
 <figure><img class="fig" src="capturas/documentos.png" alt="Gestión de documentos">
 <div class="caption">Figura 4. Carga y listado de documentos (pestañas Todos/Biblioteca/Míos).</div></figure>
-<figure><img class="fig" src="capturas/journal.png" alt="Friendship Journal">
-<div class="caption">Figura 5. Friendship Journal: consulta temática con fuentes.</div></figure>
 
 <!-- ═════════ 14 ═════════ -->
 <h2 class="page-break">14. Problemas encontrados y conclusiones</h2>

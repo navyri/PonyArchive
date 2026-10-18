@@ -5,144 +5,288 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PonyArchive — Biblioteca inteligente MLP con agente RAG</title>
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css" id="theme">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" media="screen">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css" media="screen">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap">
 
 <style>
-  /* Paleta nocturna derivada de Starlight Glimmer (misma que la app) */
+  /* Misma estética que la app: "terminal mágica retrofuturista" · Starlight Glimmer */
   :root {
-    --surface-1:   #1d1238;
-    --page:        #150c2b;
-    --text-primary:   #ffffff;
-    --text-secondary: #cfc7ee;
-    --text-muted:     #948bb5;
-    --gridline:       #2e2050;
-    --baseline:       #3a2b60;
-    --border:     rgba(255,255,255,0.11);
+    --bg-0:      #14101d;
+    --surface:   #21182e;
+    --surface-elev: #30213f;
+    --lilac:     #b78adc;
+    --aqua:      #79d9cd;
+    --rose:      #de85b8;
+    --ink:       #eee6f5;
+    --muted:     #b7a8c8;
+    --line:      #3a2b4c;
+    --grad-bar:  linear-gradient(180deg, #2a1e3b, #21182e);
 
-    --series-1:   #7fd7ff;   /* aqua  */
-    --series-2:   #c99aff;   /* violeta */
-    --series-3:   #7dffc4;   /* menta */
-    --series-4:   #ffd479;   /* dorado */
-    --series-7:   #ff9ad5;   /* rosa */
+    --font-pixel: 'Press Start 2P', monospace;
+    --font-mono:  'VT323', 'IBM Plex Mono', monospace;
+    --font-meta:  'IBM Plex Mono', monospace;
+    --font-body:  'Inter', 'Segoe UI', system-ui, sans-serif;
+  }
 
-    --status-good:    #4ade80;
-    --status-warning: #fbbf24;
-    --status-critical:#f87171;
+  .reveal-viewport {
+    background: var(--bg-0);
+    /* CRT muy sutil: líneas de barrido apenas visibles */
+    background-image: repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0 1px, transparent 1px 3px);
   }
 
   .reveal {
-    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-    font-size: 29px;
-    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-size: 27px;
+    color: var(--ink);
   }
-  .reveal-viewport { background: var(--page); }
+  .reveal section {
+    text-align: left;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+    overflow: hidden;
+  }
+  .reveal .body { padding: 2px 26px 0; }
+
+  /* barra de título de ventana (como en la app) */
+  .titlebar {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    background: var(--grad-bar);
+    border-bottom: 1px solid var(--line);
+    padding: 6px 14px;
+  }
+  .titlebar .dots { display: flex; gap: 5px; }
+  .titlebar .dots i { width: 9px; height: 9px; border-radius: 1px; display: block; }
+  .titlebar .dots .a { background: var(--lilac); }
+  .titlebar .dots .m { background: var(--aqua); }
+  .titlebar .dots .o { background: var(--rose); }
+  .titlebar .title {
+    font-family: var(--font-pixel);
+    font-size: 0.44rem;
+    letter-spacing: 0.5px;
+    color: var(--lilac);
+  }
+  .titlebar .path {
+    font-family: var(--font-meta);
+    font-size: 0.55rem;
+    color: var(--muted);
+    margin-left: auto;
+  }
 
   .reveal h1, .reveal h2, .reveal h3, .reveal h4 {
-    color: var(--text-primary);
     text-transform: none;
-    letter-spacing: -0.02em;
-    font-weight: 650;
+    letter-spacing: 0;
   }
-  .reveal h1 { font-size: 2.05em; line-height: 1.12; }
-  .reveal h2 { font-size: 1.45em; margin-bottom: 0.5em; }
-  .reveal h3 { font-size: 1.1em; color: var(--text-secondary); font-weight: 600; }
-
-  .reveal section { text-align: left; }
+  .reveal h2 {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 1.08em;
+    color: var(--ink);
+    margin: 0.55em 0 0.4em;
+  }
+  .reveal h2::before {
+    content: "// ";
+    font-family: var(--font-mono);
+    font-size: 0.95em;
+    color: var(--aqua);
+  }
   .reveal p, .reveal li { line-height: 1.5; }
   .reveal ul, .reveal ol { display: block; margin-left: 1em; }
-  .reveal li { margin-bottom: 0.38em; }
-  .reveal strong { color: var(--text-primary); font-weight: 650; }
-  .reveal em { color: var(--series-1); font-style: normal; font-weight: 600; }
+  .reveal li { margin-bottom: 0.32em; }
+  .reveal strong { color: var(--lilac); font-weight: 650; }
+  .reveal em { color: var(--aqua); font-style: normal; font-weight: 600; }
 
-  .lead { font-size: 1.12em; color: var(--text-primary); }
-  .muted { color: var(--text-muted); font-size: 0.78em; }
+  .lead { font-size: 1.08em; color: var(--ink); }
+  .muted { color: var(--muted); font-size: 0.74em; font-family: var(--font-meta); }
   .kicker {
-    color: var(--series-1); font-size: 0.62em; font-weight: 700;
-    letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 0.55em;
+    font-family: var(--font-meta);
+    color: var(--aqua); font-size: 0.58em; font-weight: 600;
+    letter-spacing: 0.14em; text-transform: uppercase; margin: 0.9em 0 0.5em;
   }
 
+  /* portada = ventana de login */
   .cover { text-align: center; }
-  .cover .sub { color: var(--text-secondary); font-size: 1.02em; margin-top: 0.55em; }
+  .cover .body { display: flex; flex-direction: column; justify-content: center; min-height: 540px; }
+  .cover .kicker { margin: 0 0 0.7em; }
+  .cover h1 {
+    font-family: var(--font-pixel);
+    font-size: 1.5em;
+    letter-spacing: 1px;
+    color: var(--lilac);
+    margin: 0 0 0.45em;
+    text-shadow: 0 0 24px rgba(183,138,220,0.35);
+  }
+  .cover .sub { color: var(--ink); font-size: 0.92em; }
+  .cover .meta { font-family: var(--font-meta); font-size: 0.62em; color: var(--muted); margin-top: 2.1em; }
 
-  .reveal pre {
-    width: 100%; box-shadow: none; font-size: 0.5em; line-height: 1.45;
-    border: 1px solid var(--border); border-radius: 10px; margin: 0.55em 0;
-    background: var(--surface-1);
-  }
-  .reveal pre code {
-    padding: 0.9em 1.1em; border-radius: 10px; max-height: 460px;
-    background: var(--surface-1); max-width: 100%;
-  }
-  .reveal code:not(pre code) {
-    background: rgba(255,255,255,0.08); color: var(--series-1);
-    padding: 0.08em 0.32em; border-radius: 5px; font-size: 0.88em;
-  }
-
-  .grid { display: grid; gap: 16px; }
+  /* paneles */
+  .grid { display: grid; gap: 14px; }
   .grid-2 { grid-template-columns: 1fr 1fr; }
   .grid-3 { grid-template-columns: repeat(3, 1fr); }
 
   .card {
-    background: var(--surface-1); border: 1px solid var(--border);
-    border-radius: 12px; padding: 15px 17px;
+    background: var(--surface-elev);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 0 14px 12px;
   }
-  .card h4 { margin: 0 0 0.3em 0; font-size: 0.88em; }
-  .card p, .card ul { margin: 0; font-size: 0.72em; line-height: 1.42; }
-  .card ul { margin-left: 0.85em; }
-  .card.accent-1 { border-left: 3px solid var(--series-1); }
-  .card.accent-2 { border-left: 3px solid var(--series-2); }
-  .card.accent-3 { border-left: 3px solid var(--series-3); }
-  .card.accent-4 { border-left: 3px solid var(--series-4); }
+  .card h4 {
+    margin: 0 0 9px;
+    padding: 7px 0 6px;
+    font-family: var(--font-pixel);
+    font-size: 0.42rem;
+    letter-spacing: 0.5px;
+    color: var(--aqua);
+    border-bottom: 1px solid var(--line);
+    text-transform: uppercase;
+  }
+  .card.accent-1 h4 { color: var(--aqua); }
+  .card.accent-2 h4 { color: var(--lilac); }
+  .card.accent-3 h4 { color: var(--rose); }
+  .card.accent-4 h4 { color: var(--ink); }
+  .card p, .card ul { margin: 0; font-size: 0.7em; line-height: 1.42; }
+  .card ul { margin-left: 0.8em; }
 
-  .reveal table { font-size: 0.6em; border-collapse: collapse; width: 100%; }
+  /* pasos de flujo = miniaturas de ventana */
+  .flow { display: flex; align-items: stretch; gap: 8px; margin: 0.6em 0; }
+  .flow-step {
+    flex: 1;
+    background: var(--surface-elev);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .flow-step .t {
+    display: block;
+    background: var(--grad-bar);
+    border-bottom: 1px solid var(--line);
+    padding: 5px 10px;
+    font-family: var(--font-meta);
+    font-size: 0.56em;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--tint, var(--aqua));
+  }
+  .flow-step .d {
+    display: block;
+    padding: 8px 10px;
+    font-family: var(--font-meta);
+    font-size: 0.56em;
+    color: var(--muted);
+    line-height: 1.35;
+  }
+  .flow-arrow {
+    align-self: center;
+    font-family: var(--font-meta);
+    color: var(--muted);
+    font-size: 0.72em;
+  }
+
+  .reveal table { font-size: 0.58em; border-collapse: collapse; width: 100%; }
   .reveal table th {
-    text-align: left; color: var(--text-muted); font-weight: 600;
-    border-bottom: 1px solid var(--baseline); padding: 7px 11px;
-    text-transform: uppercase; font-size: 0.82em; letter-spacing: 0.06em;
+    text-align: left;
+    font-family: var(--font-meta);
+    font-weight: 600;
+    color: var(--aqua);
+    background: var(--grad-bar);
+    border-bottom: 1px solid var(--line);
+    padding: 8px 12px;
+    text-transform: uppercase;
+    font-size: 0.85em;
+    letter-spacing: 0.06em;
   }
   .reveal table td {
-    padding: 7px 11px; border-bottom: 1px solid var(--gridline);
-    color: var(--text-secondary); vertical-align: top;
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink);
+    vertical-align: top;
   }
-  .reveal table td strong { color: var(--text-primary); }
-
-  .flow { display: flex; align-items: stretch; gap: 9px; margin: 0.7em 0; }
-  .flow-step {
-    flex: 1; background: var(--surface-1); border: 1px solid var(--border);
-    border-top: 3px solid var(--series-1); border-radius: 10px;
-    padding: 12px 10px; text-align: center;
-  }
-  .flow-step .t { color: var(--text-primary); font-weight: 650; font-size: 0.75em; display: block; }
-  .flow-step .d { color: var(--text-muted); font-size: 0.58em; display: block; margin-top: 0.3em; line-height: 1.32; }
-  .flow-arrow { align-self: center; color: var(--baseline); font-size: 1.15em; }
+  .reveal table td strong { color: var(--ink); }
 
   .badge {
-    display: inline-block; font-size: 0.58em; font-weight: 700; padding: 3px 9px;
-    border-radius: 999px; letter-spacing: 0.04em;
+    display: inline-block;
+    font-family: var(--font-meta);
+    font-size: 0.52em;
+    font-weight: 600;
+    padding: 4px 10px;
+    border: 1px solid;
+    border-radius: 2px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
   }
-  .badge-good { background: rgba(74,222,128,0.16); color: var(--status-good); }
-  .badge-warn { background: rgba(251,191,36,0.16); color: var(--status-warning); }
-  .badge-bad  { background: rgba(248,113,113,0.18); color: var(--status-critical); }
+  .badge-good { color: var(--aqua); border-color: rgba(121,217,205,0.5); background: rgba(121,217,205,0.10); }
+  .badge-warn { color: var(--lilac); border-color: rgba(183,138,220,0.5); background: rgba(183,138,220,0.10); }
 
   .quote {
-    background: var(--surface-1); border-left: 4px solid var(--series-3);
-    border-radius: 0 10px 10px 0; padding: 14px 18px; margin: 0.7em 0;
-    font-size: 0.9em; color: var(--text-primary);
+    background: var(--surface-elev);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--rose);
+    border-radius: 0 4px 4px 0;
+    padding: 11px 16px;
+    margin: 0.6em 0;
+    font-family: var(--font-mono);
+    font-size: 0.92em;
+    color: var(--ink);
   }
 
-  figure { margin: 0; }
-  figcaption { color: var(--text-muted); font-size: 0.58em; text-align: center; margin-top: 7px; }
-  img.diagram { width: 100%; max-height: 380px; object-fit: contain; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
+  .reveal pre {
+    width: 100%;
+    box-shadow: none;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    margin: 0.5em 0;
+    background: var(--bg-0);
+  }
+  .reveal pre code {
+    padding: 0.8em 1em;
+    border-radius: 4px;
+    max-height: none;
+    background: var(--bg-0);
+    max-width: 100%;
+    font-family: var(--font-meta);
+    font-size: 0.5em;
+    line-height: 1.45;
+  }
+  .reveal code:not(pre code) {
+    font-family: var(--font-meta);
+    background: var(--surface-elev);
+    color: var(--aqua);
+    padding: 0.05em 0.3em;
+    border-radius: 2px;
+    font-size: 0.85em;
+  }
 
-  .reveal .slide-number { background: transparent; color: var(--text-muted); font-size: 0.5em; }
-  .reveal .progress { color: var(--series-2); height: 3px; }
+  .reveal .slide-number { background: transparent; color: var(--muted); font-size: 0.5em; font-family: var(--font-meta); }
+  .reveal .progress { color: var(--lilac); height: 3px; }
 
-  /* Impresión / exportación a PDF: una lámina por página, tamaño exacto */
+  /* Impresión / exportación a PDF: una lámina por página, tamaño exacto.
+     No depende del JS de reveal: en print todas las láminas se muestran y apilan. */
   @media print {
     @page { size: 1280px 760px; margin: 0; }
-    html, body { margin: 0; padding: 0; }
+    html, body { margin: 0; padding: 0; overflow: visible; width: auto; height: auto; }
+    .reveal { transform: none !important; }
+    .reveal .controls, .reveal .progress, .reveal .slide-number { display: none !important; }
+    .pause-overlay, .aria-status, .speaker-notes { display: none !important; height: 0 !important; }
+    .reveal .slides { position: static !important; transform: none !important; }
+    .reveal .slides > section {
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      position: relative !important;
+      transform: none !important;
+      top: 0 !important; /* reveal inyecta top:1px en línea y roba 1px por lámina */
+      width: 1280px;
+      height: 760px;
+      box-sizing: border-box;
+      page-break-after: always;
+      page-break-inside: avoid;
+    }
+    .reveal .slides > section:last-child { page-break-after: auto; }
   }
 </style>
 </head>
@@ -151,251 +295,314 @@
 <div class="reveal">
 <div class="slides">
 
-<!-- ════════ 1 · Nombre del proyecto e integrantes ════════ -->
+<!-- 1 · Portada -->
 <section class="cover">
-  <p class="kicker">Agentes de IA · 2026-2</p>
-  <h1>PonyArchive</h1>
-  <p class="sub">Biblioteca inteligente de <em>My Little Pony: Friendship Is Magic</em><br>
-  con agente RAG, LangGraph y modelo local</p>
-  <p class="muted" style="margin-top:1.6em">Integrante: <strong style="color:var(--text-primary)">Mariana Lemus Esguerra</strong> · Trabajo individual</p>
+  <div class="titlebar">
+    <span class="dots"><i class="a"></i><i class="m"></i><i class="o"></i></span>
+    <span class="title">PONYARCHIVE.EXE</span>
+    <span class="path">~/agentes-ia/2026-2</span>
+  </div>
+  <div class="body">
+    <p class="kicker">Agentes de IA · 2026-2</p>
+    <h1>PONYARCHIVE</h1>
+    <p class="sub">Biblioteca inteligente de <em>My Little Pony: Friendship Is Magic</em><br>
+    con agente RAG, LangGraph y modelo local</p>
+    <p class="meta">Integrante: <strong>Mariana Lemus Esguerra</strong> · Trabajo individual</p>
+  </div>
   <aside class="notes">
     Presentación: proyecto individual. PonyArchive responde preguntas sobre la serie usando solo
     documentos indexados y rechaza explícitamente cuando no tiene evidencia.
   </aside>
 </section>
 
-<!-- ════════ 2 · Problema o necesidad ════════ -->
+<!-- 2 · Problema o necesidad -->
 <section>
-  <h2>Problema o necesidad</h2>
-  <p class="lead">Un LLM responde <em>de memoria</em>: suena seguro incluso cuando no sabe.</p>
-  <div class="grid grid-2" style="margin-top:1em">
-    <div class="card accent-2">
-      <h4>Fundamentar</h4>
-      <p>Cada respuesta debe salir de los documentos del corpus y citar su fuente — no de la memoria paramétrica del modelo.</p>
-    </div>
-    <div class="card accent-2">
-      <h4>Rechazar</h4>
-      <p>Fuera del corpus, decir «no lo sé» con la frase literal exigida, en vez de inventar algo plausible.</p>
-    </div>
+  <div class="titlebar">
+    <span class="dots"><i class="a"></i><i class="m"></i><i class="o"></i></span>
+    <span class="title">01_PROBLEMA</span>
+    <span class="path">~/ponyarchive</span>
   </div>
-  <div class="quote">
-    «No tengo suficiente información en mi base de conocimiento para responder esa pregunta.»
+  <div class="body">
+    <h2>Problema o necesidad</h2>
+    <p class="lead">Un LLM responde <em>de memoria</em>: suena seguro incluso cuando no sabe.</p>
+    <div class="grid grid-2" style="margin-top:0.9em">
+      <div class="card accent-2">
+        <h4>Fundamentar</h4>
+        <p>Cada respuesta debe salir de los documentos del corpus y citar su fuente — no de la memoria paramétrica del modelo.</p>
+      </div>
+      <div class="card accent-3">
+        <h4>Rechazar</h4>
+        <p>Fuera del corpus, decir «no lo sé» con la frase literal exigida, en vez de inventar algo plausible.</p>
+      </div>
+    </div>
+    <div class="quote">
+      «No tengo suficiente información en mi base de conocimiento para responder esa pregunta.»
+    </div>
+    <p class="muted">Caso adicional: <strong>conocimiento de contexto del aula</strong> — datos que constan en una nota propia, no en ningún documento público, deben responderse citando esa nota.</p>
   </div>
-  <p class="muted">Caso adicional: <strong>conocimiento de contexto del aula</strong> — datos que constan en una nota propia, no en ningún documento público, deben responderse citando esa nota.</p>
   <aside class="notes">
     Dos exigencias del enunciado: respuestas fundamentadas y rechazo explícito. Y un caso real del
     profesor: preguntas de contexto de clase.
   </aside>
 </section>
 
-<!-- ════════ 3 · Arquitectura ════════ -->
+<!-- 3 · Arquitectura -->
 <section>
-  <h2>Arquitectura</h2>
-  <div class="flow" style="margin-top:0.9em">
-    <div class="flow-step" style="border-top-color:var(--series-1)">
-      <span class="t">Frontend</span>
-      <span class="d">React + Vite + TS<br>chat · documentos · journal</span>
-    </div>
-    <span class="flow-arrow">⇄</span>
-    <div class="flow-step" style="border-top-color:var(--series-2)">
-      <span class="t">Backend FastAPI</span>
-      <span class="d">21 endpoints · JWT<br>grafo LangGraph</span>
-    </div>
-    <span class="flow-arrow">⇄</span>
-    <div class="flow-step" style="border-top-color:var(--series-3)">
-      <span class="t">ChromaDB + SQLite</span>
-      <span class="d">819 fragmentos<br>usuarios y conversaciones</span>
-    </div>
-    <span class="flow-arrow">⇄</span>
-    <div class="flow-step" style="border-top-color:var(--series-4)">
-      <span class="t">Ollama (local)</span>
-      <span class="d">qwen3.5:4b<br>RTX 4070 · 67 tok/s</span>
-    </div>
+  <div class="titlebar">
+    <span class="dots"><i class="a"></i><i class="m"></i><i class="o"></i></span>
+    <span class="title">02_ARQUITECTURA</span>
+    <span class="path">~/ponyarchive</span>
   </div>
-  <div class="grid grid-3" style="margin-top:1.3em">
-    <div class="card accent-1"><h4>Sin nube de pago</h4><p>Todo local o free tier: presupuesto <strong>0 USD</strong>.</p></div>
-    <div class="card accent-3"><h4>Privacidad</h4><p>Ninguna pregunta ni documento sale del equipo.</p></div>
-    <div class="card accent-4"><h4>Docker</h4><p><code>docker compose up -d</code> levanta backend (8010) y frontend (8081).</p></div>
+  <div class="body">
+    <h2>Arquitectura</h2>
+    <div class="flow" style="margin-top:0.7em">
+      <div class="flow-step" style="--tint:var(--aqua)">
+        <span class="t">Frontend</span>
+        <span class="d">React + Vite + TS<br>chat · documentos · historial</span>
+      </div>
+      <span class="flow-arrow">-&gt;</span>
+      <div class="flow-step" style="--tint:var(--lilac)">
+        <span class="t">Backend FastAPI</span>
+        <span class="d">16 endpoints · JWT<br>grafo LangGraph</span>
+      </div>
+      <span class="flow-arrow">-&gt;</span>
+      <div class="flow-step" style="--tint:var(--rose)">
+        <span class="t">ChromaDB + SQLite</span>
+        <span class="d">2.862 fragmentos<br>usuarios y conversaciones</span>
+      </div>
+      <span class="flow-arrow">-&gt;</span>
+      <div class="flow-step" style="--tint:var(--ink)">
+        <span class="t">Ollama (local)</span>
+        <span class="d">qwen3.5:4b<br>RTX 4070 · 67 tok/s</span>
+      </div>
+    </div>
+    <div class="grid grid-3" style="margin-top:1.1em">
+      <div class="card accent-1"><h4>Sin nube de pago</h4><p>Todo local o free tier: presupuesto <strong>0 USD</strong>.</p></div>
+      <div class="card accent-3"><h4>Privacidad</h4><p>Ninguna pregunta ni documento sale del equipo.</p></div>
+      <div class="card accent-4"><h4>Docker</h4><p><code>docker compose up -d</code> levanta backend (8010) y frontend (8081).</p></div>
+    </div>
   </div>
   <aside class="notes">
-    Tres piezas desacopladas más el modelo local. En la nube: frontend Vercel, backend Render/HF,
-    modelo por túnel.
+    Tres piezas desacopladas más el modelo local. En la nube: frontend Vercel, backend Render,
+    Qdrant Cloud y OpenAI en free tier (DEC-17).
   </aside>
 </section>
 
-<!-- ════════ 4 · Tecnologías usadas ════════ -->
+<!-- 4 · Tecnologías usadas -->
 <section>
-  <h2>Tecnologías usadas</h2>
-  <table>
-    <thead><tr><th style="width:26%">Capa</th><th style="width:44%">Tecnología</th><th>Por qué</th></tr></thead>
-    <tbody>
-      <tr><td><strong>Backend</strong></td><td>Python 3.14 · FastAPI · Uvicorn</td><td>Encaja con LangChain; OpenAPI en <code>/docs</code></td></tr>
-      <tr><td><strong>Agente</strong></td><td>LangChain + LangGraph</td><td>Grafo de estados en código, sin constructores visuales</td></tr>
-      <tr><td><strong>LLM</strong></td><td>Ollama — <code>qwen3.5:4b</code></td><td>Local, gratuito, 67 tok/s en RTX 4070</td></tr>
-      <tr><td><strong>Embeddings</strong></td><td><code>multilingual-e5-small</code> (384 d)</td><td>Multilingüe: rinde en español</td></tr>
-      <tr><td><strong>Vectorial</strong></td><td>ChromaDB persistente</td><td>Embebida, sin servidor externo</td></tr>
-      <tr><td><strong>Frontend</strong></td><td>React + Vite + TypeScript</td><td>Ligero; build con <code>tsc</code> + vite sin errores</td></tr>
-      <tr><td><strong>Datos</strong></td><td>Pony API · CC BY-SA 3.0</td><td>243 episodios · 555 personajes</td></tr>
-    </tbody>
-  </table>
-  <p class="muted">Secretos en <code>.env</code> (nunca en el repo) · código bajo licencia MIT · dependencias fijadas.</p>
+  <div class="titlebar">
+    <span class="dots"><i class="a"></i><i class="m"></i><i class="o"></i></span>
+    <span class="title">03_TECNOLOGIAS</span>
+    <span class="path">~/ponyarchive</span>
+  </div>
+  <div class="body">
+    <h2>Tecnologías usadas</h2>
+    <table>
+      <thead><tr><th style="width:24%">Capa</th><th style="width:44%">Tecnología</th><th>Por qué</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Backend</strong></td><td>Python 3.14 · FastAPI · Uvicorn</td><td>Encaja con LangChain; OpenAPI en <code>/docs</code></td></tr>
+        <tr><td><strong>Agente</strong></td><td>LangChain + LangGraph</td><td>Grafo de estados en código, sin constructores visuales</td></tr>
+        <tr><td><strong>LLM</strong></td><td>Ollama — <code>qwen3.5:4b</code></td><td>Local, gratuito, 67 tok/s en RTX 4070</td></tr>
+        <tr><td><strong>Embeddings</strong></td><td><code>multilingual-e5-small</code> (384 d)</td><td>Multilingüe: rinde en español</td></tr>
+        <tr><td><strong>Vectorial</strong></td><td>ChromaDB persistente</td><td>Embebida, sin servidor externo</td></tr>
+        <tr><td><strong>Frontend</strong></td><td>React + Vite + TypeScript</td><td>Ligero; build con <code>tsc</code> + vite sin errores</td></tr>
+        <tr><td><strong>Datos</strong></td><td>Pony API + Fandom (CC BY-SA)</td><td>243 episodios · 555 personajes · sinopsis</td></tr>
+      </tbody>
+    </table>
+    <p class="muted">Secretos en <code>.env</code> (nunca en el repo) · código bajo licencia MIT · dependencias fijadas.</p>
+  </div>
   <aside class="notes">
     Ningún servicio comercial de pago. Si preguntan por el modelo: 4B por VRAM y latencia; el RAG hace
     el trabajo pesado.
   </aside>
 </section>
 
-<!-- ════════ 5 · Agente con LangChain y LangGraph ════════ -->
+<!-- 5 · Agente con LangChain y LangGraph -->
 <section>
-  <h2>Agente con LangChain y LangGraph</h2>
-  <div class="flow" style="margin-top:0.6em">
-    <div class="flow-step"><span class="t">validate_intent</span><span class="d">dominio · catálogo · fuera de dominio</span></div>
-    <span class="flow-arrow">→</span>
-    <div class="flow-step"><span class="t">retrieve</span><span class="d">Chroma filtrada por usuario</span></div>
-    <span class="flow-arrow">→</span>
-    <div class="flow-step" style="border-top-color:var(--series-3)"><span class="t">evaluate_sufficiency</span><span class="d">¿hay evidencia?</span></div>
+  <div class="titlebar">
+    <span class="dots"><i class="a"></i><i class="m"></i><i class="o"></i></span>
+    <span class="title">04_AGENTE_GRAFO</span>
+    <span class="path">~/ponyarchive</span>
   </div>
-  <div class="flow">
-    <div class="flow-step" style="border-top-color:var(--series-3)"><span class="t">generate</span><span class="d">prompt restringido + citas [n]</span></div>
-    <span class="flow-arrow">→</span>
-    <div class="flow-step" style="border-top-color:var(--series-4)"><span class="t">validate_answer</span><span class="d">entidades en el contexto</span></div>
-    <span class="flow-arrow">→</span>
-    <div class="flow-step" style="border-top-color:var(--series-2)"><span class="t">persist</span><span class="d">historial del usuario</span></div>
-  </div>
-  <p class="muted" style="margin-top:0.7em">Rutas condicionales: sin evidencia → <strong>reject</strong> (frase literal) · consultas de catálogo → SQL directo sin LLM.</p>
-  <pre><code class="language-python" data-trim data-noescape>
+  <div class="body">
+    <h2>Agente con LangChain y LangGraph</h2>
+    <div class="flow" style="margin-top:0.5em">
+      <div class="flow-step"><span class="t">validate_intent</span><span class="d">dominio · catálogo · fuera de dominio</span></div>
+      <span class="flow-arrow">-&gt;</span>
+      <div class="flow-step" style="--tint:var(--lilac)"><span class="t">retrieve</span><span class="d">Chroma filtrada por usuario</span></div>
+      <span class="flow-arrow">-&gt;</span>
+      <div class="flow-step" style="--tint:var(--rose)"><span class="t">evaluate_sufficiency</span><span class="d">¿hay evidencia?</span></div>
+    </div>
+    <div class="flow">
+      <div class="flow-step" style="--tint:var(--aqua)"><span class="t">generate</span><span class="d">prompt restringido + citas [n]</span></div>
+      <span class="flow-arrow">-&gt;</span>
+      <div class="flow-step" style="--tint:var(--ink)"><span class="t">validate_answer</span><span class="d">entidades en el contexto</span></div>
+      <span class="flow-arrow">-&gt;</span>
+      <div class="flow-step" style="--tint:var(--lilac)"><span class="t">persist</span><span class="d">historial del usuario</span></div>
+    </div>
+    <p class="muted" style="margin-top:0.6em">Rutas condicionales: sin evidencia → <strong>reject</strong> (frase literal) · consultas de catálogo → SQL directo sin LLM.</p>
+    <pre><code class="language-python" data-trim data-noescape>
 g = StateGraph(AgentState)
 g.add_node("retrieve", retrieve)
 g.add_conditional_edges("evaluate_sufficiency",
     lambda s: "generate" if s["sufficient"] else "reject")
-  </code></pre>
+    </code></pre>
+  </div>
   <aside class="notes">
     Todo en Python. Las 7 estrategias anti-alucinación viven en estos nodos: umbral, suficiencia,
     prompt, rechazo, fuentes, validación y SQL.
   </aside>
 </section>
 
-<!-- ════════ 6 · Base vectorial y carga de documentos ════════ -->
+<!-- 6 · Base vectorial y carga de documentos -->
 <section>
-  <h2>Base vectorial y carga de documentos</h2>
-  <div class="flow" style="margin-top:0.7em">
-    <div class="flow-step" style="border-top-color:var(--series-2)"><span class="t">Cargar</span><span class="d">Pony API · semillas · .txt/.md del usuario</span></div>
-    <span class="flow-arrow">→</span>
-    <div class="flow-step" style="border-top-color:var(--series-2)"><span class="t">Trocear</span><span class="d">fragmentos con solapamiento</span></div>
-    <span class="flow-arrow">→</span>
-    <div class="flow-step" style="border-top-color:var(--series-2)"><span class="t">Embeber</span><span class="d">e5-small · "passage: …"</span></div>
-    <span class="flow-arrow">→</span>
-    <div class="flow-step" style="border-top-color:var(--series-2)"><span class="t">Indexar</span><span class="d">Chroma + metadatos</span></div>
+  <div class="titlebar">
+    <span class="dots"><i class="a"></i><i class="m"></i><i class="o"></i></span>
+    <span class="title">05_BASE_VECTORIAL</span>
+    <span class="path">~/ponyarchive</span>
   </div>
-  <div class="grid grid-2" style="margin-top:1em">
-    <div class="card accent-1">
-      <h4>Metadatos por fragmento</h4>
-      <p><code>doc_type</code>, <code>title</code>, <code>user_id</code>, <code>themes</code>, <code>chunk_index</code> → cada fuente reconstruye su documento original.</p>
+  <div class="body">
+    <h2>Base vectorial y carga de documentos</h2>
+    <div class="flow" style="margin-top:0.5em">
+      <div class="flow-step" style="--tint:var(--lilac)"><span class="t">Cargar</span><span class="d">Pony API · semillas · .txt/.md/.pdf del usuario</span></div>
+      <span class="flow-arrow">-&gt;</span>
+      <div class="flow-step" style="--tint:var(--lilac)"><span class="t">Trocear</span><span class="d">fragmentos con solapamiento</span></div>
+      <span class="flow-arrow">-&gt;</span>
+      <div class="flow-step" style="--tint:var(--lilac)"><span class="t">Embeber</span><span class="d">multilingual-e5-small · "passage: …"</span></div>
+      <span class="flow-arrow">-&gt;</span>
+      <div class="flow-step" style="--tint:var(--lilac)"><span class="t">Indexar</span><span class="d">Chroma + metadatos</span></div>
     </div>
-    <div class="card accent-3">
-      <h4>Idempotente y aislado</h4>
-      <p>Deduplicación por <code>content_hash</code> (por usuario); las cargas de un usuario no se ven desde otro.</p>
+    <div class="grid grid-2" style="margin-top:0.9em">
+      <div class="card accent-1">
+        <h4>Metadatos por fragmento</h4>
+        <p><code>doc_type</code>, <code>title</code>, <code>user_id</code>, <code>themes</code>, <code>chunk_index</code> → cada fuente reconstruye su documento original.</p>
+      </div>
+      <div class="card accent-3">
+        <h4>Idempotente y aislado</h4>
+        <p>Deduplicación por <code>content_hash</code> (por usuario); las cargas de un usuario no se ven desde otro.</p>
+      </div>
     </div>
+    <p class="muted" style="margin-top:0.8em"><strong>Consulta:</strong> <code>TOP_K=6</code> · umbral <code>0.62</code> · bonificación +0,05 a los documentos propios recién subidos.</p>
   </div>
-  <p class="muted" style="margin-top:0.9em"><strong>Consulta:</strong> <code>TOP_K=6</code> · umbral <code>0.62</code> · bonificación +0,05 a los documentos propios recién subidos.</p>
   <aside class="notes">
-    Estado actual: 819 fragmentos (816 documentos). Si preguntan por PDF: hoy es txt/md; el pipeline
-    admite cualquier texto extraído.
+    Estado actual: 2.862 fragmentos (820 documentos), con sinopsis de Fandom (CC BY-SA). Si preguntan
+    por PDF: el pipeline admite cualquier texto extraído.
   </aside>
 </section>
 
-<!-- ════════ 7 · Seguridad y usuarios ════════ -->
+<!-- 7 · Seguridad y usuarios -->
 <section>
-  <h2>Seguridad y usuarios</h2>
-  <div class="grid grid-2" style="margin-top:0.8em">
-    <div class="card accent-4">
-      <h4>Autenticación</h4>
-      <ul>
-        <li>Registro / login / refresh / logout</li>
-        <li>Contraseñas con hash · JWT firmado con <code>SECRET_KEY</code></li>
-        <li>Sin token en endpoints de negocio → <strong>401</strong></li>
-      </ul>
-    </div>
-    <div class="card accent-1">
-      <h4>Aislamiento de datos</h4>
-      <ul>
-        <li>Historial por usuario (caso B04)</li>
-        <li>Documentos propios vs. compartidos (T10/T10b)</li>
-        <li>Cada búsqueda filtra por visibilidad</li>
-      </ul>
-    </div>
-    <div class="card accent-2">
-      <h4>Configuración</h4>
-      <ul>
-        <li>CORS con lista explícita de orígenes</li>
-        <li><code>.env</code> fuera del repo · <code>.env.example</code> documentado</li>
-        <li>Contenedor sin privilegios</li>
-      </ul>
-    </div>
-    <div class="card accent-3">
-      <h4>DEC-05 · Keycloak</h4>
-      <p>Se eligió Keycloak; opera en modo <code>local</code> (JWT propio) con <code>AUTH_PROVIDER=keycloak</code> listo para activarse. El enunciado permite implementación propia.</p>
+  <div class="titlebar">
+    <span class="dots"><i class="a"></i><i class="m"></i><i class="o"></i></span>
+    <span class="title">06_SEGURIDAD</span>
+    <span class="path">~/ponyarchive</span>
+  </div>
+  <div class="body">
+    <h2>Seguridad y usuarios</h2>
+    <div class="grid grid-2" style="margin-top:0.7em">
+      <div class="card accent-4">
+        <h4>Autenticación</h4>
+        <ul>
+          <li>Registro / login / refresh / logout</li>
+          <li>Contraseñas con hash · JWT (HS256)</li>
+          <li>Sin token en endpoints de negocio → <strong>401</strong></li>
+        </ul>
+      </div>
+      <div class="card accent-1">
+        <h4>Aislamiento de datos</h4>
+        <ul>
+          <li>Historial por usuario (caso B04)</li>
+          <li>Documentos propios vs. compartidos (T10/T10b)</li>
+          <li>Cada búsqueda filtra por visibilidad</li>
+        </ul>
+      </div>
+      <div class="card accent-2">
+        <h4>Configuración</h4>
+        <ul>
+          <li>CORS con lista explícita de orígenes</li>
+          <li><code>.env</code> fuera del repo · <code>.env.example</code> documentado</li>
+          <li>Contenedor sin privilegios</li>
+        </ul>
+      </div>
+      <div class="card accent-3">
+        <h4>DEC-04 · JWT propio</h4>
+        <p>Autenticación propia (HS256) en lugar de Keycloak: el enunciado §2.1 permite implementarla por cuenta propia; coste 0 USD y control total.</p>
+      </div>
     </div>
   </div>
   <aside class="notes">
     R-04: la frase "ningún endpoint sin autenticación" choca con /health, OPTIONS y las rutas de login;
-    está documentado en el documento técnico §11.
+    está documentado en el documento técnico.
   </aside>
 </section>
 
-<!-- ════════ 8 · Demostración ════════ -->
+<!-- 8 · Demostración -->
 <section>
-  <h2>Demostración</h2>
-  <div class="grid grid-3" style="margin-top:0.8em">
-    <div class="card accent-3">
-      <h4>✓ Respondido con fuentes</h4>
-      <p>«¿Qué ocurre en Lesson Zero?» → respuesta con <strong>6 fuentes</strong> y similitudes.</p>
-    </div>
-    <div class="card accent-2">
-      <h4>✗ Rechazado</h4>
-      <p>«¿Cuánto sulfato de cobre...?» → frase literal de rechazo.</p>
-    </div>
-    <div class="card accent-4">
-      <h4>📄 Doc nuevo</h4>
-      <p>Se sube un .txt y la siguiente pregunta responde desde ese archivo.</p>
-    </div>
-    <div class="card accent-1">
-      <h4>📚 Contexto del curso</h4>
-      <p>«¿A Duvan Gomez le pega la esposa?» → sí, con la nota como fuente (sim 0,904).</p>
-    </div>
-    <div class="card accent-2">
-      <h4>👥 Aislamiento</h4>
-      <p>Dos usuarios: cada uno solo ve y consulta sus documentos.</p>
-    </div>
-    <div class="card accent-3">
-      <h4>🧪 Pruebas</h4>
-      <p><span class="badge badge-good">12/12 smoke</span> <span class="badge badge-good">E2E Docker OK</span></p>
-    </div>
+  <div class="titlebar">
+    <span class="dots"><i class="a"></i><i class="m"></i><i class="o"></i></span>
+    <span class="title">07_DEMOSTRACION</span>
+    <span class="path">~/ponyarchive</span>
   </div>
-  <p class="muted" style="margin-top:1em">Recorrido en vivo: login → chat con fuentes → rechazo → carga de documento → grafo en el código → despliegue.</p>
+  <div class="body">
+    <h2>Demostración</h2>
+    <div class="grid grid-3" style="margin-top:0.7em">
+      <div class="card accent-1">
+        <h4>Respondido</h4>
+        <p>«¿Qué ocurre en Lesson Zero?» → respuesta con <strong>6 fuentes</strong> y similitudes.</p>
+      </div>
+      <div class="card accent-3">
+        <h4>Rechazado</h4>
+        <p>«¿Cuánto sulfato de cobre...?» → frase literal de rechazo.</p>
+      </div>
+      <div class="card accent-2">
+        <h4>Doc nuevo</h4>
+        <p>Se sube un .txt y la siguiente pregunta responde desde ese archivo.</p>
+      </div>
+      <div class="card accent-1">
+        <h4>Contexto del curso</h4>
+        <p>«¿A Duvan Gomez le pega la esposa?» → sí, con la nota como fuente (sim 0,904).</p>
+      </div>
+      <div class="card accent-3">
+        <h4>Aislamiento</h4>
+        <p>Dos usuarios: cada uno solo ve y consulta sus documentos.</p>
+      </div>
+      <div class="card accent-2">
+        <h4>Pruebas</h4>
+        <p><span class="badge badge-good">12/12 smoke</span> <span class="badge badge-good">E2E Docker OK</span></p>
+      </div>
+    </div>
+    <p class="muted" style="margin-top:0.9em">Recorrido en vivo: login → chat con fuentes → rechazo → carga de documento → grafo en el código → despliegue.</p>
+  </div>
   <aside class="notes">
     Orden de la demo: arquitectura, login, chat correcto, rechazo, carga de documento + pregunta,
     grafo en código, evidencia de despliegue. 7-10 minutos.
   </aside>
 </section>
 
-<!-- ════════ 9 · Conclusiones ════════ -->
+<!-- 9 · Conclusiones -->
 <section>
-  <h2>Conclusiones</h2>
-  <div style="max-width:1000px">
-    <p><strong>1.</strong> Requisitos mínimos cumplidos: backend + frontend, auth, agente con
-    LangGraph, <strong>modelo local</strong>, base vectorial con carga de documentos,
-    respuestas fundamentadas y <strong>rechazo explícito</strong>.</p>
-    <p><strong>2.</strong> <strong>7 estrategias anti-alucinación</strong> (exigidas ≥2), verificadas con
-    <strong>12 pruebas automatizadas</strong> y un E2E completo sobre Docker.</p>
-    <p><strong>3.</strong> LangGraph hace auditables las decisiones del agente: cada ruta es una arista
-    en código, sin constructores visuales.</p>
-    <p><strong>4.</strong> Un modelo de 4B basta cuando el RAG hace el trabajo pesado: la calidad
-    depende de la recuperación y del prompt, no del tamaño del modelo.</p>
-    <p><strong>5.</strong> Coste 0 USD: todo local o free tier, con el túnel al Ollama del portátil
-    como solución al modelo en la nube.</p>
+  <div class="titlebar">
+    <span class="dots"><i class="a"></i><i class="m"></i><i class="o"></i></span>
+    <span class="title">08_CONCLUSIONES</span>
+    <span class="path">~/ponyarchive</span>
   </div>
-  <p class="muted" style="margin-top:1.1em">Repo: <code>github.com/navyri/PonyArchive</code> · Documento técnico con las 14 secciones · Licencias: código MIT · datos CC BY-SA 3.0 (Pony Archive).</p>
+  <div class="body">
+    <h2>Conclusiones</h2>
+    <div style="max-width:1010px">
+      <p style="font-size:0.88em"><strong>1.</strong> Requisitos mínimos cumplidos: backend + frontend, auth, agente con
+      LangGraph, <strong>modelo local</strong>, base vectorial con carga de documentos,
+      respuestas fundamentadas y <strong>rechazo explícito</strong>.</p>
+      <p style="font-size:0.88em"><strong>2.</strong> <strong>7 estrategias anti-alucinación</strong> (mínimo 2 exigidas), verificadas con
+      <strong>12 pruebas automatizadas</strong> y un E2E completo sobre Docker.</p>
+      <p style="font-size:0.88em"><strong>3.</strong> LangGraph hace auditables las decisiones del agente: cada ruta es una arista
+      en código, sin constructores visuales.</p>
+      <p style="font-size:0.88em"><strong>4.</strong> Un modelo de 4B basta cuando el RAG hace el trabajo pesado: la calidad
+      depende de la recuperación y del prompt, no del tamaño del modelo.</p>
+      <p style="font-size:0.88em"><strong>5.</strong> Coste 0 USD: pila local completa y despliegue en free tier
+      (Vercel, Render, Qdrant Cloud y cupo gratuito de OpenAI).</p>
+    </div>
+    <p class="muted" style="margin-top:0.9em">Repo: <code>github.com/navyri/PonyArchive</code> · Documento técnico con sus 14 secciones · Licencias: código MIT · datos CC BY-SA (Pony API y Fandom).</p>
+  </div>
   <aside class="notes">
     Cierre: preguntas del público. Repo y documento técnico como evidencia.
   </aside>
@@ -415,7 +622,7 @@ g.add_conditional_edges("evaluate_sufficiency",
     transitionSpeed: 'fast',
     width: 1280,
     height: 760,
-    margin: 0.06,
+    margin: 0.045,
     plugins: [RevealHighlight, RevealNotes],
   });
 </script>
