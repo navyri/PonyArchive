@@ -30,6 +30,26 @@ Incluye autenticación con JWT, historial por usuario, carga de documentos y des
   <img src="https://capsule-render.vercel.app/api?type=rect&height=5&color=B78ADC,79D9CD"/>
 </p>
 
+<p align="center">
+  <img src="docs/capturas/chat-fuentes.png" alt="Respuesta del agente con las fuentes recuperadas" width="900"/>
+</p>
+
+<p align="center"><em>Respuesta fundamentada: el agente cita las fuentes recuperadas con su título, tipo y similitud.</em></p>
+
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=rect&height=5&color=79D9CD,DE85B8"/>
+</p>
+
+<p align="center">
+  <img src="docs/capturas/rechazo.png" alt="Rechazo explícito cuando no hay evidencia suficiente" width="900"/>
+</p>
+
+<p align="center"><em>Rechazo honesto: sin evidencia en la base de conocimiento, responde con la frase literal en lugar de inventar.</em></p>
+
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=rect&height=5&color=B78ADC,79D9CD"/>
+</p>
+
 ## Requisitos
 
 | Componente | Versión | Notas |
@@ -78,6 +98,16 @@ están indexados (la ingesta es idempotente).
 | Autenticación JWT | ✅ | Registro, login, logout y refresh; historial por usuario |
 | Carga de documentos | ✅ | Sube .txt/.md y pregúntales al agente |
 | Despliegue en la nube | ✅ | Frontend en Vercel y backend en Render (0 USD), pila dual por variable de entorno |
+
+<p align="center">
+  <img src="docs/capturas/documentos.png" alt="Gestión de documentos: carga, pestañas y borrado" width="900"/>
+</p>
+
+<p align="center"><em>Biblioteca y cargas propias: pestañas Todos/Biblioteca/Míos, filtros y borrado con confirmación.</em></p>
+
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=rect&height=5&color=B78ADC,79D9CD"/>
+</p>
 
 ## Credenciales de prueba
 
