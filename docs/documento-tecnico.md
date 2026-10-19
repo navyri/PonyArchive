@@ -310,6 +310,26 @@ inmediata añade un servicio de ~512 MB que los free tiers suelen no cubrir. La 
 > datos de negocio). Se documenta abiertamente aquí: sin token, los endpoints de negocio responden 401
 > verificado.
 
+### Tokens ligados a la instancia de base de datos (corrección del 2026-10-19)
+
+**Incidente:** en la nube, dos usuarios reportaron que el navegador de uno mostró la sesión (nombre e
+historial) del otro. Los JWT son stateless y su identidad es únicamente el `sub` (id de usuario). El
+despliegue free de Render usa un **disco efímero**: la base SQLite se restablece en cada reinicio
+(sueño o despliegue) y los ids de usuario se reasignan desde 1. Un navegador conservaba un
+`refresh` token válido (7 días) emitido en una BD anterior: al refrescar, el backend buscaba el id
+antiguo y encontraba a otra persona → sesión ajena sin compartir credenciales.
+
+**Corrección:** cada token lleva ahora el claim `inst` con el id de la instancia de BD (fila única en
+la tabla `app_meta`), validado al emitir y al refrescar. Si la base se restablece, todos los tokens
+anteriores responden **401 «Sesión caducada»** y el usuario vuelve a iniciar sesión: una identidad ya
+no puede reutilizarse. Los tokens emitidos por versiones anteriores no llevan el claim y caducan
+también (compatibilidad *fail-closed*).
+
+**Alcance:** el problema solo existía en la nube (disco efímero); en local y Docker la base es
+persistente y los ids no se reasignan. Verificado con token de la imagen anterior → 401 y login nuevo
+→ 200 en Docker y en la nube tras el despliegue. La solución de fondo (persistencia de usuarios y
+historiales en la nube) requiere una base gestionada; queda anotada como limitación del free tier.
+
 ## 12. Despliegue
 
 Presupuesto: **0 USD** (solo free tiers), tal como exige el enunciado.

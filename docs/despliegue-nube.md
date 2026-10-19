@@ -88,3 +88,22 @@ Debe dar 12/12 (usa la API pública; crea usuarios de prueba efímeros).
 - Anotar las dos URLs en este archivo y en el §12 del documento técnico
   (`docs/documento-tecnico.md` → regenerar el PDF).
 - Enlazar la imagen principal del README raíz a la URL del frontend.
+
+### 5. Limitación del free tier: disco efímero (2026-10-19)
+
+Render free **no conserva el disco** entre reinicios: la base SQLite (usuarios,
+conversaciones y la tabla `documents`) se restablece cuando la instancia se duerme
+o se redespliega. Los vectores sí sobreviven porque viven en Qdrant Cloud.
+
+Consecuencias y mitigaciones:
+
+- Los usuarios de la nube deben volver a registrarse tras cada reinicio (los
+  historiales locales se pierden). En la demo se usa el entorno local/Docker,
+  que sí es persistente.
+- **Antes del fix esto era un agujero de seguridad**: los JWT identifican por id
+  de usuario y los ids se reasignaban tras el reinicio → un navegador con un
+  refresh token antiguo podía entrar como otra persona (DEC-22). Con el claim
+  `inst` (id de la instancia de BD) todos los tokens antiguos caducan con 401.
+- Persistencia real de usuarios/historiales en la nube requeriría una BD
+  gestionada (p. ej. Postgres free tier): fuera de alcance con la fecha de
+  entrega; documentado en el documento técnico §11.
