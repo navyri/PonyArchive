@@ -65,7 +65,8 @@ def _ensure_qdrant_collection(client, settings) -> None:
     """Crea la colección y sus índices de payload si faltan.
 
     Qdrant Cloud rechaza con 400 cualquier filtro sobre un campo sin índice,
-    así que user_id (entero) y doc_type (cadena) se indexan al asegurar.
+    así que user_id, doc_type y doc_id (borrado por documento) se indexan al
+    asegurar.
     """
     from app.services.embeddings import embedding_dims
     from qdrant_client.models import Distance, PayloadSchemaType, VectorParams
@@ -84,6 +85,7 @@ def _ensure_qdrant_collection(client, settings) -> None:
     for campo, tipo in (
         ("user_id", PayloadSchemaType.INTEGER),
         ("doc_type", PayloadSchemaType.KEYWORD),
+        ("doc_id", PayloadSchemaType.INTEGER),
     ):
         if campo not in indexados:
             client.create_payload_index(

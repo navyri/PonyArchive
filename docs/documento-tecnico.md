@@ -203,8 +203,8 @@ catalog_query --> persist ; reject --> persist ; persist --> END
 > **nota de contexto del curso** (`doc_type = nota_curso`), la pregunta se responde con esa fuente; si no
 > la hay, se aplica el rechazo literal. Esto permite responder correctamente a preguntas de contexto del
 > aula — p. ej. «¿A Duvan Gomez le pega la esposa?» → «Según la nota de contexto del curso, a Duvan Gomez
-> le pega la esposa y lo deja morado» (fuente citada, similitud 0,904) — sin introducir conocimiento
-> inventado.
+> le pega la esposa y le deja morados, lleno de aporreones» (fuente citada, similitud 0,905) — sin
+> introducir conocimiento inventado.
 
 ## 8. Modelo local utilizado y base de datos vectorial
 
