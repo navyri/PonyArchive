@@ -936,6 +936,8 @@ _ASUNTO_STOP = {
     "despues", "antes", "ahora", "tambien", "sobre", "entre", "durante",
     "aparece", "aparecen", "existe", "existen", "puedes", "puede", "quiero",
     "documento", "documentos", "biblioteca", "pregunta", "respuesta",
+    # «secondary»/«secundario» y compañía: con prefijo dispararían T05 sin información
+    "secundario", "secundarios", "primaria", "primero",
 }
 # Palabras propias del dominio: presentes en casi cualquier fragmento, no distinguen
 _ASUNTO_GENERICOS = {
@@ -948,20 +950,23 @@ def _context_toca_el_asunto(question: str, retrieved: list[dict]) -> bool:
     """¿Algún término propio de la pregunta aparece en el contexto recuperado?
 
     Si el contexto nombra el asunto y el modelo aun así niega, se le da una segunda
-    oportunidad con la regla 7 (resumir lo documentado y marcar el hueco). Los
-    términos genéricos no cuentan: una pregunta sin evidencia real (T05: «capítulo
-    47 con un sombrero morado») no debe disparar el reintento.
+    oportunidad con la regla 7 (resumir lo documentado y marcar el hueco). Cubre
+    además el puente entre idiomas («alicornios» → «Alicorn») mediante prefijos de
+    7+ letras. Los términos genéricos no cuentan: una pregunta sin evidencia real
+    (T05: «capítulo 47 con un sombrero morado») no debe disparar el reintento.
     """
     if not retrieved:
         return False
     context = _norm_text(" ".join(r["text"] for r in retrieved))
-    return any(
-        len(tok) >= 6
-        and tok not in _ASUNTO_GENERICOS
-        and tok not in _ASUNTO_STOP
-        and tok in context
-        for tok in _norm_text(question).split()
-    )
+    for tok in _norm_text(question).split():
+        if len(tok) < 6 or tok in _ASUNTO_GENERICOS or tok in _ASUNTO_STOP:
+            continue
+        if tok in context:
+            return True
+        # Prefijos largos: «alicornios» comparte «alicorn» con el corpus en inglés
+        if len(tok) >= 9 and any(tok[:n] in context for n in range(7, len(tok) - 1)):
+            return True
+    return False
 
 
 def generate(state: AgentState) -> dict:
@@ -1000,15 +1005,17 @@ def generate(state: AgentState) -> dict:
         ).content.strip()
         refused = answer.startswith(REFUSAL_MESSAGE)
     if refused and _context_toca_el_asunto(state["question"], retrieved):
-        # El contexto sí nombra el asunto (p. ej. «los Elementos» en las sinopsis):
-        # el rechazo total pierde lo documentado; se aplica la regla 7 (reintento).
+        # El contexto sí nombra el asunto (p. ej. «los Elementos» en las sinopsis, o
+        # «Alicorn» en inglés para «alicornios»): el rechazo total pierde lo
+        # documentado; se aplica la regla 7 (reintento único).
         answer = get_llm().invoke(
             prompt
             + "\n\nCORRECCIÓN: el contexto SÍ nombra el asunto de la pregunta (revisa "
             "cada fragmento completo, sinopsis y fichas incluidas). No uses la frase de "
             "rechazo: resume con «Dato documentado:» lo que los fragmentos dicen sobre "
             "ese asunto y cierra con «No está documentado en la biblioteca: <lo que "
-            "falta>».\n"
+            "falta>». Si el dato puntual no aparece, márcalo con esa frase; no rechaces "
+            "de plano.\n"
         ).content.strip()
         refused = answer.startswith(REFUSAL_MESSAGE)
     return {"answer": answer, "sources": [] if refused else _source_list(retrieved), "refused": refused}
