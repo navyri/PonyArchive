@@ -2,6 +2,7 @@
 
 Dos modos según AUTH_PROVIDER: "local" (JWT propio HS256 con usuarios en base
 de datos) o "keycloak" (tokens verificados contra su JWKS)."""
+import uuid
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
@@ -9,10 +10,11 @@ import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWKClient
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.database import get_db
+from app.database import SessionLocal, get_db
 from app.models import User
 
 settings = get_settings()
@@ -33,26 +35,61 @@ def verify_password(password: str, password_hash: str) -> bool:
         return False
 
 
+# Instancia de base de datos
+
+def get_instance_id(db: Session) -> str:
+    """Identificador único de esta instancia de base de datos.
+
+    Los JWT son stateless y su identidad es el id de usuario. En un despliegue
+    con disco efímero (Render free) la base se restablece y los ids se
+    reasignan a otras personas: un token antiguo entraría como otro usuario
+    (incidente del 2026-10-19). Ligamos cada token a la instancia de BD que lo
+    emitió: si la base se restablece, todos los tokens previos caducan (401)
+    en vez de reutilizar identidades.
+    """
+    session = SessionLocal()
+    try:
+        session.execute(
+            text("CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
+        )
+        row = session.execute(
+            text("SELECT value FROM app_meta WHERE key = 'instance_id'")
+        ).first()
+        if row is not None:
+            return row[0]
+        new_id = uuid.uuid4().hex
+        session.execute(
+            text("INSERT INTO app_meta (key, value) VALUES ('instance_id', :v)"),
+            {"v": new_id},
+        )
+        session.commit()
+        return new_id
+    finally:
+        session.close()
+
+
 # Tokens locales
 
-def create_access_token(user: User) -> str:
+def create_access_token(user: User, instance_id: str) -> str:
     now = datetime.now(timezone.utc)
     payload = {
         "sub": str(user.id),
         "email": user.email,
         "name": user.display_name,
         "type": "access",
+        "inst": instance_id,
         "iat": now,
         "exp": now + timedelta(minutes=settings.access_token_expire_minutes),
     }
     return jwt.encode(payload, settings.secret_key, algorithm=settings.algorithm)
 
 
-def create_refresh_token(user: User) -> str:
+def create_refresh_token(user: User, instance_id: str) -> str:
     now = datetime.now(timezone.utc)
     payload = {
         "sub": str(user.id),
         "type": "refresh",
+        "inst": instance_id,
         "iat": now,
         "exp": now + timedelta(days=settings.refresh_token_expire_days),
     }
@@ -107,6 +144,14 @@ def get_current_user(
 
     if payload.get("type") not in (None, "access"):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Tipo de token no válido.")
+
+    # Tokens ligados a la instancia de BD: si la base se restableció, este
+    # token pertenece a una BD anterior (los ids pueden ya ser de otra persona).
+    if payload.get("inst") != get_instance_id(db):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Sesión caducada. Vuelve a iniciar sesión.",
+        )
 
     subject = payload.get("sub")
     email = payload.get("email") or ""

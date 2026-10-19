@@ -14,6 +14,7 @@ from app.security import (
     create_access_token,
     create_refresh_token,
     get_current_user,
+    get_instance_id,
     hash_password,
     verify_password,
 )
@@ -49,10 +50,11 @@ def _user_payload(user: User) -> dict:
     return {"id": user.id, "email": user.email, "display_name": user.display_name}
 
 
-def _tokens(user: User) -> TokenResponse:
+def _tokens(user: User, db: Session) -> TokenResponse:
+    instance_id = get_instance_id(db)
     return TokenResponse(
-        access_token=create_access_token(user),
-        refresh_token=create_refresh_token(user),
+        access_token=create_access_token(user, instance_id),
+        refresh_token=create_refresh_token(user, instance_id),
         user=_user_payload(user),
     )
 
@@ -74,7 +76,7 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
-    return _tokens(user)
+    return _tokens(user, db)
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -84,7 +86,7 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Credenciales incorrectas.")
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Usuario desactivado.")
-    return _tokens(user)
+    return _tokens(user, db)
 
 
 @router.post("/refresh", response_model=TokenResponse)
@@ -103,10 +105,15 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db)):
     if data.get("type") != "refresh":
         raise HTTPException(status_code=401, detail="Tipo de token no válido.")
 
+    # Misma salvaguarda que en el access token: un refresh de una BD anterior
+    # no debe poder mintir tokens para los ids (reasignados) de la BD actual.
+    if data.get("inst") != get_instance_id(db):
+        raise HTTPException(status_code=401, detail="Refresh caducado. Vuelve a iniciar sesión.")
+
     user = db.get(User, int(data["sub"]))
     if user is None or not user.is_active:
         raise HTTPException(status_code=401, detail="Usuario no autorizado.")
-    return _tokens(user)
+    return _tokens(user, db)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
