@@ -11,6 +11,13 @@
 #
 # Los puertos 5173/8080/8180/5432 ya están ocupados por otros proyectos en esta
 # máquina, por eso el frontend usa el 8081 y el backend el 8010.
+#
+# Si se arranca desde cero (down -v), el catálogo se importa con el backend
+# DETENIDO (Chroma no admite dos procesos a la vez) y después se reinicia:
+#   docker compose up -d --build backend
+#   docker compose stop backend
+#   docker compose run --rm backend python scripts/import_pony.py
+#   docker compose up -d
 
 services:
   backend:
