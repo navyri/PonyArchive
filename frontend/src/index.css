@@ -370,14 +370,17 @@ h3 {
 
 .btn.primary {
   background: var(--lilac);
-  background-size: 160% 160%;
   border-color: var(--lilac);
   color: var(--bg-0);
   text-shadow: none;
 }
 
+/* En hover se aclara el lavanda y el texto oscuro se mantiene: el contraste
+   sube de 6.85:1 a 9.35:1 (texto claro sobre lavanda bajaría a 2.00:1). */
 .btn.primary:hover:not(:disabled) {
-  background-position: 100% 50%;
+  background: #cfa8ee;
+  border-color: #cfa8ee;
+  color: var(--bg-0);
   box-shadow: 0 8px 20px rgba(183, 138, 220, 0.55);
 }
 

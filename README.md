@@ -3,7 +3,9 @@
 </p>
 
 <p align="center">
-  <img src="https://64.media.tumblr.com/ca492f2e341e5f0d825c899842bd2ca3/f8c0a52918cf3b90-85/s500x750/044bc7e22b528a519ee7391eeb1533b5542503dc.gifv" alt="Twilight Sparkle" height="350"/>
+  <a href="https://pony-archive.vercel.app" title="Probar PonyArchive en la nube">
+    <img src="https://64.media.tumblr.com/ca492f2e341e5f0d825c899842bd2ca3/f8c0a52918cf3b90-85/s500x750/044bc7e22b528a519ee7391eeb1533b5542503dc.gifv" alt="Twilight Sparkle — abrir PonyArchive" height="250"/>
+  </a>
 </p>
 
 <p align="center">
@@ -27,27 +29,27 @@ Incluye autenticación con JWT, historial por usuario, carga de documentos y des
 (0 USD).
 
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=rect&height=5&color=B78ADC,79D9CD"/>
+  <img src="https://capsule-render.vercel.app/api?type=rect&height=6&color=21182E"/>
 </p>
 
 <p align="center">
-  <img src="docs/capturas/chat-fuentes.png" alt="Respuesta del agente con las fuentes recuperadas" width="900"/>
+  <img src="docs/capturas/chat-fuentes.png" alt="Respuesta del agente con las fuentes recuperadas" width=80%/>
 </p>
 
 <p align="center"><em>Respuesta fundamentada: el agente cita las fuentes recuperadas con su título, tipo y similitud.</em></p>
 
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=rect&height=5&color=79D9CD,DE85B8"/>
+  <img src="https://capsule-render.vercel.app/api?type=rect&height=6&color=21182E"/>
 </p>
 
 <p align="center">
-  <img src="docs/capturas/rechazo.png" alt="Rechazo explícito cuando no hay evidencia suficiente" width="900"/>
+  <img src="docs/capturas/rechazo.png" alt="Rechazo explícito cuando no hay evidencia suficiente" width=80%/>
 </p>
 
 <p align="center"><em>Rechazo honesto: sin evidencia en la base de conocimiento, responde con la frase literal en lugar de inventar.</em></p>
 
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=rect&height=5&color=B78ADC,79D9CD"/>
+  <img src="https://capsule-render.vercel.app/api?type=rect&height=6&color=21182E"/>
 </p>
 
 ## Requisitos
@@ -83,7 +85,7 @@ vacía tarda ~8–10 min (243 episodios + 555 personajes + 192 canciones); poste
 están indexados (la ingesta es idempotente).
 
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=rect&height=5&color=B78ADC,79D9CD"/>
+  <img src="https://capsule-render.vercel.app/api?type=rect&height=6&color=21182E"/>
 </p>
 
 ## Características
@@ -100,13 +102,13 @@ están indexados (la ingesta es idempotente).
 | Despliegue en la nube | ✅ | Frontend en Vercel y backend en Render (0 USD), pila dual por variable de entorno |
 
 <p align="center">
-  <img src="docs/capturas/documentos.png" alt="Gestión de documentos: carga, pestañas y borrado" width="900"/>
+  <img src="docs/capturas/documentos.png" alt="Gestión de documentos: carga, pestañas y borrado"width=80%/>
 </p>
 
 <p align="center"><em>Biblioteca y cargas propias: pestañas Todos/Biblioteca/Míos, filtros y borrado con confirmación.</em></p>
 
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=rect&height=5&color=B78ADC,79D9CD"/>
+  <img src="https://capsule-render.vercel.app/api?type=rect&height=6&color=21182E"/>
 </p>
 
 ## Credenciales de prueba
@@ -153,7 +155,7 @@ PonyArchive/
 ```
 
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=rect&height=5&color=B78ADC,79D9CD"/>
+  <img src="https://capsule-render.vercel.app/api?type=rect&height=6&color=21182E"/>
 </p>
 
 ## Endpoints
@@ -172,6 +174,9 @@ PonyArchive/
 
 ## Despliegue en la nube (0 USD)
 
+**Aplicación desplegada:** [**https://pony-archive.vercel.app**](https://pony-archive.vercel.app)
+· API: [**https://ponyarchive-api.onrender.com**](https://ponyarchive-api.onrender.com)
+
 La arquitectura en nube usa **frontend en Vercel + backend en Render + Qdrant Cloud + OpenAI**
 (embeddings y chat). El frontend solo habla con el backend por `/api`; el modelo y la base vectorial
 quedan tras la API. Los tres providers se cambian por variable de entorno (`EMBEDDINGS_PROVIDER`,
@@ -183,13 +188,15 @@ Render y **nunca se versionan**.
 
 ## Documentación y demo
 
+La presentación está publicada en GitHub Pages:
+**[navyri.github.io/PonyArchive/presentacion.html](https://navyri.github.io/PonyArchive/presentacion.html)**.
 El repositorio incluye el documento técnico (`docs/documento-tecnico.md` + PDF) y la presentación
 (`docs/presentacion.pdf`) en `docs/`, además de una prueba e2e (`backend/scripts/e2e_compose.py`) y un
 smoke test de 12 casos (`backend/scripts/smoke_test.py`). La demo muestra el agente respondiendo con
 fuentes, el rechazo literal y la carga de documentos.
 
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=rect&height=5&color=B78ADC,79D9CD"/>
+  <img src="https://capsule-render.vercel.app/api?type=rect&height=6&color=21182E"/>
 </p>
 
 ## Regenerar PDF
@@ -206,3 +213,7 @@ fuentes, el rechazo literal y la carga de documentos.
 - **Código:** MIT (archivo `LICENSE`).
 - **Datos:** Pony API y wiki de Fandom bajo **CC BY-SA 3.0** (atribución obligatoria). Las fichas
   narrativas y las etiquetas temáticas son redacción propia.
+
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&height=120&section=footer&color=21182E" alt=""/>
+</p>

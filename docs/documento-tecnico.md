@@ -324,19 +324,30 @@ docker compose up -d
 | `frontend/nginx.conf` | Proxy de `/api` y `/health` a `backend:8000` |
 | `docker-compose.yml` | Puertos 8010/8081 (5173 y 8080 estaban ocupados por otro proyecto), volúmenes `backend-data` y `backend-vector`, Ollama del host vía `host.docker.internal:11434` |
 
-### Nube (free tiers)
+### Nube (free tiers) — desplegado y verificado (2026-10-18)
 
-| Componente | Servicio previsto | Estado |
+| Componente | Servicio | Estado |
 |---|---|---|
-| Frontend | Vercel (free) | pendiente de publicación |
-| Backend | Render (free) | pendiente de publicación |
-| Base vectorial | Qdrant Cloud (free tier) | pendiente de creación del clúster |
-| Modelo (nube) | OpenAI con clave propia (cupo gratuito) — flags `EMBEDDINGS_PROVIDER`/`LLM_PROVIDER`/`VECTOR_PROVIDER` conmutan local ↔ nube sin tocar código | pendiente de indexación |
+| Frontend | Vercel (free) — **https://pony-archive.vercel.app** | publicado |
+| Backend | Render (free) — **https://ponyarchive-api.onrender.com** | publicado; smoke 12/12 contra la URL pública |
+| Base vectorial | Qdrant Cloud (free tier, región sa-east-1) | 1.001 documentos → 3.086 fragmentos |
+| Modelo (nube) | OpenAI `text-embedding-3-small` + `gpt-4o-mini` — flags `EMBEDDINGS_PROVIDER`/`LLM_PROVIDER`/`VECTOR_PROVIDER` conmutan local ↔ nube sin tocar código | verificado en la URL pública |
 | Repositorio | GitHub público — `github.com/navyri/PonyArchive` | publicado |
 
-*Nota de transparencia:* esta sección se actualiza con las URLs definitivas en cuanto se complete la
-publicación; el criterio de aprobación es «URL pública accesible» y se mostrará en vivo en la
-demostración. La demo en vivo se ejecuta en local (Ollama + Docker), sin depender de la nube.
+Detalle operativo del despliegue:
+
+- El plan free de Render no tiene disco persistente: la base relacional se
+  reconstruye en cada arranque. Como el índice vectorial de la nube sí
+  persiste, la siembra **hidrata el catálogo desde los payloads del índice**
+  (segundos, sin re-embeber) y contiene fallos puntuales por documento.
+- `/health` reporta el modelo realmente activo según el proveedor
+  (`gpt-4o-mini` en nube, `qwen3.5:4b` en local).
+- Las pruebas de humo crean usuarios efímeros contra la instancia desplegada
+  (`SMOKE_BASE_URL=https://ponyarchive-api.onrender.com`).
+
+*Nota de transparencia:* la demostración en vivo se ejecuta en local
+(Ollama + Docker), sin depender de la nube; la URL pública se muestra como
+evidencia del requisito de despliegue.
 
 ## 13. Evidencias de funcionamiento
 

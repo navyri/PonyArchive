@@ -36,32 +36,41 @@
   se suspende a la semana sin uso y se borra al mes.
 - Embeddings OpenAI: ~$0.02 por reindexar todo el corpus.
 
+## Estado del despliegue
+
+- **Backend (Render, plan free): https://ponyarchive-api.onrender.com** — Live.
+  Smoke 12/12 contra la URL pública (2026-10-18). `/health`:
+  `{"env":"prod","model":"gpt-4o-mini","chunks_indexados":3086}`.
+- Primer arranque: un fallo transitorio de red mató el hilo de la semilla y
+  dejó una fila en error que bloqueaba el reintento. Arreglado (commit
+  `3d743f5`): la siembra contiene fallos por documento, descarta filas en
+  error y si la base relacional está vacía pero el índice de la nube tiene la
+  biblioteca, **hidrata el catálogo desde los payloads del índice** sin
+  re-embeber ni reimportar (segundos, 0 USD). Verificado: DB nueva → 1.001
+  documentos reconstruidos.
+
 ## Pasos que faltan (requieren cuenta de la usuaria)
 
-### 1. Render (backend)
+### 1. Render (backend) — HECHO
 
-1. Crear cuenta en render.com con el mismo GitHub del repo.
-2. New → Web Service → elegir el repo → Render detecta `render.yaml`
-   (Blueprint); revisar y desplegar.
-3. En Environment del servicio, completar las variables con `sync: false`:
-   `OPENAI_API_KEY`, `QDRANT_URL`, `QDRANT_API_KEY` (los mismos del `.env`
-   local) y `CORS_ORIGINS=https://<app-front>.vercel.app` (se rellena tras el
-   paso 2, o se guarda tras conocer la URL de Vercel).
-4. Esperar el primer deploy: la semilla indexa el corpus en segundo plano
-   (~3-6 min); el health check pasa de inmediato.
-5. Verificar: `https://ponyarchive-api.onrender.com/health` →
-   `{"status":"ok", "chunks_indexados": 3086}`.
+1. ~~Crear cuenta en render.com~~ ✓
+2. ~~New → Blueprint → repo → deploy (`ponyarchive-api`, plan free)~~ ✓
+3. Variables completadas: `OPENAI_API_KEY`, `QDRANT_URL`, `QDRANT_API_KEY`,
+   `CORS_ORIGINS` (placeholder pendiente de la URL de Vercel).
+4. ~~Primer deploy + semilla~~ ✓ Catálogo hidratado (1.001 docs).
+5. ~~Verificar `https://ponyarchive-api.onrender.com/health`~~ ✓
 
-### 2. Vercel (frontend)
+### 2. Vercel (frontend) — HECHO
 
-1. Crear cuenta en vercel.com con GitHub.
-2. New Project → repo → ajustes del proyecto:
-   - Root Directory: `frontend`
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
-3. Environment variable: `VITE_API_URL=https://ponyarchive-api.onrender.com`.
-4. Desplegar y copiar la URL pública (`https://<app>.vercel.app`).
-5. Volver al paso 3 de Render y poner esa URL en `CORS_ORIGINS`.
+1. ~~Crear cuenta en vercel.com con GitHub~~ ✓
+2. ~~Importar repo con Root Directory `frontend`, preset Vite~~ ✓
+3. ~~`VITE_API_URL=https://ponyarchive-api.onrender.com` en Production and
+   Preview~~ ✓
+4. ~~Desplegar → **https://pony-archive.vercel.app**~~ ✓
+5. ~~`frontend/vercel.json` con rewrite SPA (`/(.*) → /index.html`): con
+   `BrowserRouter`, las rutas directas (`/login`) devolvían 404~~ ✓
+6. `CORS_ORIGINS=https://pony-archive.vercel.app` en Render → Environment →
+   Save (redespliegue automático).
 
 ### 3. Verificación end-to-end en nube
 
