@@ -23,7 +23,7 @@
 agente RAG (LangChain + LangGraph), modelo local en Ollama y una base vectorial propia.
 
 El agente responde preguntas sobre los **243 episodios, 555 personajes y 192 canciones** de la serie a
-partir de su propia base de conocimiento indexada (1.015 documentos → 3.100 fragmentos), muestra las
+partir de su propia base de conocimiento indexada (1.001 documentos → ~3.100 fragmentos), muestra las
 fuentes recuperadas con su similitud y **se niega a responder** cuando la evidencia no alcanza.
 Incluye autenticación con JWT, historial por usuario, carga de documentos y despliegue en la nube
 (0 USD).
@@ -194,7 +194,14 @@ La presentación está publicada en GitHub Pages:
 El repositorio incluye el documento técnico (`docs/documento-tecnico.md` + PDF) y la presentación
 (`docs/presentacion.pdf`) en `docs/`, además de una prueba e2e (`backend/scripts/e2e_compose.py`) y un
 smoke test de 12 casos (`backend/scripts/smoke_test.py`). La demo muestra el agente respondiendo con
-fuentes, el rechazo literal y la carga de documentos.
+fuentes, el rechazo literal y la carga de documentos: `docs/cartas-kayou-mlp.txt` es el `.txt` que se
+sube en vivo para preguntar datos que solo están en él.
+
+<p align="center">
+  <img src="docs/capturas/kayou.png" alt="Respuesta del agente desde el .txt Kayou subido en la demo" width=80%/>
+</p>
+
+<p align="center"><em>Demo en vivo: se sube <code>cartas-kayou-mlp.txt</code> y la pregunta responde con las fuentes de ese archivo.</em></p>
 
 <p align="center">
   <img src="https://capsule-render.vercel.app/api?type=rect&height=6&color=21182E"/>

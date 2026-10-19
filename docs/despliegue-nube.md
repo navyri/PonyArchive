@@ -1,6 +1,6 @@
 # Despliegue en nube (M8) — estado y pasos
 
-## Hecho y verificado (2026-10-18)
+## Hecho y verificado (2026-10-18; última re-verificación: 2026-10-19)
 
 - [x] Flags dual local/nube por variable de entorno (config.py + .env.example):
       `EMBEDDINGS_PROVIDER=local|openai`, `LLM_PROVIDER=ollama|openai`,
@@ -38,9 +38,11 @@
 
 ## Estado del despliegue
 
-- **Backend (Render, plan free): https://ponyarchive-api.onrender.com** — Live.
-  Smoke 12/12 contra la URL pública (2026-10-18). `/health`:
-  `{"env":"prod","model":"gpt-4o-mini","chunks_indexados":3086}`.
+- **Backend (Render, plan free): https://ponyarchive-api.onrender.com** — Live
+  (commit `e49e66c`). Smoke 12/12 y baterías RAG (menciones 21/21, enumeraciones
+  9/9, catálogo 8/8, huecos 4/4) contra la URL pública (2026-10-19). `/health`:
+  `{"env":"prod","model":"gpt-4o-mini","chunks_indexados":3085}` (el recuento
+  oscila ±unos fragmentos según las cargas de prueba).
 - Primer arranque: un fallo transitorio de red mató el hilo de la semilla y
   dejó una fila en error que bloqueaba el reintento. Arreglado (commit
   `3d743f5`): la siembra contiene fallos por documento, descarta filas en

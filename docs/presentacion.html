@@ -482,10 +482,10 @@ g.add_conditional_edges("evaluate_sufficiency",
         <p>Deduplicación por <code>content_hash</code> (por usuario); las cargas de un usuario no se ven desde otro.</p>
       </div>
     </div>
-    <p class="muted" style="margin-top:0.8em"><strong>Consulta:</strong> <code>TOP_K=6</code> · umbral <code>0.62</code> (e5 local) / <code>0.50</code> (nube OpenAI, <code>0.45</code> para la nota del curso) · bonificación +0,05 a los documentos propios recién subidos.</p>
+    <p class="muted" style="margin-top:0.8em"><strong>Consulta:</strong> <code>TOP_K=6</code> · umbral <code>0.62</code> (e5 local) / <code>0.50</code> (nube OpenAI, <code>0.45</code> para la nota del curso) · bonificación +0,05 a los documentos propios recién subidos · si la pregunta cita un documento por nombre: +0,10 y hasta 6 fragmentos de ese documento.</p>
   </div>
   <aside class="notes">
-    Estado actual: 3.100 fragmentos (1.015 documentos: 243 episodios, 555 personajes con
+    Estado actual: ~3.100 fragmentos (1.001 documentos: 243 episodios, 555 personajes con
     descripción de Fandom, 192 canciones, fichas narrativas, subidos y notas), CC BY-SA.
     Formatos de carga: la interfaz (la que se usa en la demo) admite .txt y .md.
     El endpoint API también acepta .csv/.pdf/.docx (pypdf/python-docx), pero en
@@ -559,7 +559,7 @@ g.add_conditional_edges("evaluate_sufficiency",
       </div>
       <div class="card accent-2">
         <h4>Doc nuevo</h4>
-        <p>Se sube un .txt y la siguiente pregunta responde desde ese archivo.</p>
+        <p>Se sube <code>cartas-kayou-mlp.txt</code> (guía Kayou) y las preguntas siguientes responden desde él —incluida una con dato ausente.</p>
       </div>
       <div class="card accent-1">
         <h4>Contexto del curso</h4>
@@ -571,7 +571,7 @@ g.add_conditional_edges("evaluate_sufficiency",
       </div>
       <div class="card accent-2">
         <h4>Pruebas</h4>
-        <p><span class="badge badge-good">12/12 smoke</span> <span class="badge badge-good">E2E Docker OK</span></p>
+        <p><span class="badge badge-good">12/12 smoke</span> <span class="badge badge-good">46/46 baterías RAG</span> <span class="badge badge-good">E2E Docker OK</span></p>
       </div>
     </div>
     <p class="muted" style="margin-top:0.9em">Recorrido en vivo: login → chat con fuentes → rechazo → carga de documento → grafo en el código → despliegue.</p>

@@ -177,12 +177,12 @@ fuentes. **No hay constructores visuales:** el grafo se define en código Python
 
 | Nodo | Función |
 |---|---|
-| `validate_intent` | Clasifica la intención con el LLM (`factual`, `tematica`, `comparacion`, `catalogo`, `meta`, `fuera_de_dominio`, `ambigua`) y propone filtros (tipo de documento, título, tema) con valores por defecto seguros; correcciones **deterministas sin LLM**: preguntas sobre el propio agente (E7), recuentos («cuántos episodios de Rarity»), enumeraciones explícitas y citas de temporada → `catalogo`; el tipo de documento se **inferido desde la propia pregunta** y manda sobre lo que proponga el clasificador; y títulos documentados citados literalmente que anulan un `fuera_de_dominio` erróneo |
-| `retrieve` | Búsqueda vectorial en Chroma con filtro de visibilidad; prioriza los documentos subidos por el usuario (+0,05 de bonificación) y hace una búsqueda general complementaria siempre que haya filtros |
+| `validate_intent` | Clasifica la intención con el LLM (`factual`, `tematica`, `comparacion`, `catalogo`, `meta`, `fuera_de_dominio`, `ambigua`) y propone filtros (tipo de documento, título, tema) con valores por defecto seguros; correcciones **deterministas sin LLM**: preguntas sobre el propio agente (E7), recuentos que nombran un tipo del corpus («cuántos episodios de Rarity»: episodios, canciones, personajes, temporadas, fichas), enumeraciones explícitas y citas de temporada → `catalogo` — un recuento de otro dato («cuántas cartas tiene Moon Box 7») no secuestra la ruta y se resuelve con recuperación —, el tipo de documento **inferido desde la propia pregunta** (y manda sobre lo que proponga el clasificador) y títulos documentados citados literalmente que anulan un `fuera_de_dominio` erróneo |
+| `retrieve` | Búsqueda vectorial en Chroma con filtro de visibilidad; prioriza los documentos subidos por el usuario (+0,05 de bonificación) y hace una búsqueda general complementaria siempre que haya filtros; **diversidad**: máximo 2 fragmentos por documento —hasta 6 si la pregunta cita ese documento por nombre (`por_mencion`)— para que un archivo largo no sature el contexto |
 | `evaluate_sufficiency` | Decide si hay evidencia: umbral de similitud y reglas por tipo de documento; si no la hay, marca `refused` con la frase literal |
-| `catalog_query` | Para consultas de catálogo, responde con consultas directas a la BD (E7) sin pasar por el LLM: **recuentos** (conteos por tipo y desglose de episodios por temporada), **recuento acotado a una entidad** («cuántos episodios hay de Rarity»: cuenta los episodios cuyo texto documental menciona al personaje, agrupando por documento) y **enumeraciones** (lista los títulos reales del tipo pedido, con filtro de temporada para episodios); si la consulta cita una temporada no indexada para ese tipo, lo advierte en lugar de fingir el filtro |
-| `generate` | Prompt restringido: responder *solo* con el contexto recuperado, citando fuentes con `[n]` |
-| `validate_answer` | Comprueba la respuesta generada (entidades citadas presentes en el contexto, presencia de fuentes); si falla, deriva a `reject` |
+| `catalog_query` | Para consultas de catálogo, responde con consultas directas a la BD (E7) sin pasar por el LLM: **recuentos** (conteos por tipo y desglose de episodios por temporada), **recuento acotado a una entidad** («cuántos episodios hay de Rarity»: cuenta los episodios cuyo texto documental menciona al personaje, agrupando por documento; la rama se aplica a episodios y capítulos — cualquier otro recuento va a recuperación) y **enumeraciones** (lista los títulos reales del tipo pedido, con filtro de temporada para episodios); si la consulta cita una temporada no indexada para ese tipo, lo advierte en lugar de fingir el filtro |
+| `generate` | Prompt restringido: responder *solo* con el contexto recuperado, citando fuentes con `[n]`; si el modelo empieza por la frase de rechazo pese a tener evidencia (la pregunta cita un documento presente en el contexto o el contexto nombra el asunto), se reintenta con correcciones forzadas —hasta 3 invocaciones— y, en último extremo, una plantilla determinista que resume el fragmento y marca el hueco; los casos sin evidencia (T04/T05) no llegan a esas ramas y rechazan siempre |
+| `validate_answer` | Comprueba la respuesta generada (entidades citadas presentes en el contexto, presencia de fuentes); si falla, devuelve el control a `generate` con una regla de reformulación (1 reintento) y, si vuelve a fallar, deriva a `reject` |
 | `reject` | Emite el mensaje de rechazo literal exigido |
 | `persist` | Guarda pregunta y respuesta en la conversación del usuario |
 
@@ -234,8 +234,9 @@ catalog_query --> persist ; reject --> persist ; persist --> END
   `doc_type`, `title`, `user_id`, `themes`, `continuity`, `chunk_index` y `source`.
 - **Parámetros:** `TOP_K=6` fragmentos por consulta y `SIMILARITY_THRESHOLD=0.62` (calibrado con
   preguntas de prueba). La distancia de Chroma se convierte a similitud (`1 - distancia`).
-- **Escala actual:** 1.015 documentos → **3.100 fragmentos** en local (243 episodios, 555 personajes con
-  prosa de Fandom, 192 canciones, fichas narrativas, notas de contexto y documentos subidos; la E2E de
+- **Escala actual:** 1.001 documentos del corpus compartido → **~3.100 fragmentos** en local (243
+  episodios, 555 personajes con prosa de Fandom, 192 canciones, 10 fichas narrativas y 1 nota de
+  contexto; a ellas se suman las cargas de usuario —en nube, 1.001 → 3.086 con OpenAI—; la E2E de
   compose del 2026-10-17 registró 814 fragmentos antes de estas ampliaciones).
 
 ## 9. Proceso de carga de documentos
@@ -271,13 +272,13 @@ El enunciado exige **al menos 2**; se implementaron **7** (E1–E7):
 
 | ID | Estrategia | Descripción y ubicación |
 |---|---|---|
-| **E1** | Umbral de similitud | Solo se aceptan fragmentos por encima del umbral calibrado por espacio de embeddings (`SIMILARITY_THRESHOLD`: 0,62 con e5 local, 0,50 con OpenAI; la nota de contexto del curso, documento corto y de confianza del aula, tiene umbral propio 0,45 en nube); los descartados se registran en las notas de recuperación. **Bonus de mención**: cuando la pregunta nombra literalmente un título indexado (token ≥5 compartido), el fragmento de ese documento recibe +0,10 de similitud y salta el umbral (`por_mencion`), de modo que nombrar a la persona basta para que su fuente entre al contexto |
+| **E1** | Umbral de similitud | Solo se aceptan fragmentos por encima del umbral calibrado por espacio de embeddings (`SIMILARITY_THRESHOLD`: 0,62 con e5 local, 0,50 con OpenAI; la nota de contexto del curso, documento corto y de confianza del aula, tiene umbral propio 0,45 en nube); los descartados se registran en las notas de recuperación. **Bonus de mención**: cuando la pregunta nombra literalmente un título indexado (token ≥5 compartido), el fragmento de ese documento recibe +0,10 de similitud y salta el umbral (`por_mencion`) y su presupuesto de diversidad sube de 2 a 6 fragmentos, de modo que nombrar a la persona —o el archivo que subiste— basta para que su fuente entre al contexto con la cobertura necesaria |
 | **E2** | Nodo de suficiencia | `evaluate_sufficiency`: antes de generar, decide con reglas explícitas si hay evidencia; sin ella, no se invoca al LLM y se rechaza |
 | **E3** | Prompt restringido | `generate` ordena responder solo con el contexto recuperado, citar con `[n]`, no completar con conocimiento previo y, cuando la pregunta trata de una persona o tema presente en el contexto (genérica como «¿qué pasa con X?» o con un dato puntual no documentado como «¿cuál es su segundo nombre?»), resumir lo documentado y marcar el hueco con «No está documentado en la biblioteca» en lugar de rechazar. La frase de rechazo se usa solo si el contexto no menciona siquiera al sujeto |
 | **E4** | Rechazo literal | Mensaje fijo exacto: «No tengo suficiente información en mi base de conocimiento para responder esa pregunta.» (casos T04/T05) |
 | **E5** | Fuentes obligatorias | La respuesta viaja con su lista de fuentes (título, tipo, similitud); la UI las muestra y un giro sin fuentes se considera inválido |
-| **E6** | Verificación de entidades | `validate_answer` comprueba que las entidades/cifras citadas aparecen en el contexto (tolerando la traducción del nombre común: basta la última palabra distintiva — «Princesa Celestia» → «celestia»); si no, deriva al rechazo |
-| **E7** | Catálogo por consulta directa | Las preguntas de catálogo se resuelven con consultas directas a la BD, sin generación de texto. Distingue **recuento** («cuántas canciones», «cuántos episodios por temporada»), **recuento por entidad** («cuántos episodios hay de Rarity»: cuenta los episodios cuyo texto menciona al personaje) y **enumeración** («lista las canciones», «enumera los episodios de la temporada 1»): la enumeración devuelve los títulos reales indexados en la BD; los episodios se filtran por temporada leyendo el texto documental (las canciones no tienen temporada indexada, y eso se declara en la respuesta en lugar de ignorarlo) |
+| **E6** | Verificación de entidades | `validate_answer` comprueba que las entidades/cifras citadas aparecen en el contexto (tolerando la traducción del nombre común: basta la última palabra distintiva — «Princesa Celestia» → «celestia»); si falla, la respuesta vuelve una vez a `generate` con una regla de reformulación y solo entonces deriva al rechazo |
+| **E7** | Catálogo por consulta directa | Las preguntas de catálogo se resuelven con consultas directas a la BD, sin generación de texto. Distingue **recuento** («cuántas canciones», «cuántos episodios por temporada»; solo si el dato nombrado es un tipo del corpus —los recuentos de otros datos van a recuperación—), **recuento por entidad** («cuántos episodios hay de Rarity»: cuenta los episodios cuyo texto menciona al personaje; aplica a episodios y capítulos) y **enumeración** («lista las canciones», «enumera los episodios de la temporada 1»): la enumeración devuelve los títulos reales indexados en la BD; los episodios se filtran por temporada leyendo el texto documental (las canciones no tienen temporada indexada, y eso se declara en la respuesta en lugar de ignorarlo) |
 
 Además, el historial que se inyecta en el prompt está recortado, la temperatura es baja y la intención
 se clasifica con el propio modelo local (sin servicios externos).
@@ -328,12 +329,12 @@ docker compose up -d
 | `frontend/nginx.conf` | Proxy de `/api` y `/health` a `backend:8000` |
 | `docker-compose.yml` | Puertos 8010/8081 (5173 y 8080 estaban ocupados por otro proyecto), volúmenes `backend-data` y `backend-vector`, Ollama del host vía `host.docker.internal:11434` |
 
-### Nube (free tiers) — desplegado y verificado (2026-10-18)
+### Nube (free tiers) — desplegado y verificado (2026-10-18; re-verificado 2026-10-19)
 
 | Componente | Servicio | Estado |
 |---|---|---|
 | Frontend | Vercel (free) — **https://pony-archive.vercel.app** | publicado |
-| Backend | Render (free) — **https://ponyarchive-api.onrender.com** | publicado; smoke 12/12 contra la URL pública |
+| Backend | Render (free) — **https://ponyarchive-api.onrender.com** | publicado (commit `e49e66c`); smoke 12/12 y baterías RAG verdes contra la URL pública (2026-10-19) |
 | Base vectorial | Qdrant Cloud (free tier, región sa-east-1) | 1.001 documentos → 3.086 fragmentos |
 | Modelo (nube) | OpenAI `text-embedding-3-small` + `gpt-4o-mini` — flags `EMBEDDINGS_PROVIDER`/`LLM_PROVIDER`/`VECTOR_PROVIDER` conmutan local ↔ nube sin tocar código | verificado en la URL pública |
 | Repositorio | GitHub público — `github.com/navyri/PonyArchive` | publicado |
@@ -362,7 +363,8 @@ evidencia del requisito de despliegue.
 
 | Evidencia | Método | Resultado |
 |---|---|---|
-| Smoke test automatizado (12 casos) | `python scripts/smoke_test.py` | **12/12 OK** |
+| Smoke test automatizado (12 casos) | `python scripts/smoke_test.py` (local :8000, Docker :8010 y nube con `SMOKE_BASE_URL`) | **12/12 OK** en los tres entornos |
+| Baterías RAG (2026-10-19) | `Temp\opencode\verif_*.py` (verificación interna) contra local, Docker y nube | **46/46**: menciones 21/21, enumeraciones 9/9, catálogo 8/8, huecos 4/4 (los tres entornos) y Kayou 4/4 (local y Docker) |
 | E2E sobre Docker | `python scripts/e2e_compose.py` | **TODO CORRECTO** (health, registro, importación 243+555+192, chat con 6 fuentes, rechazo literal, contexto del curso) |
 | Batería de 45 preguntas G4 | `bateria_g4.py` (verificación interna) | **45/45**: 40 respondidas con fuentes + exactamente los 5 rechazos esperados |
 | Recorrido en navegador | Frontend en dev + capturas | verificado (3 capturas más abajo) |
@@ -398,6 +400,10 @@ evidencia del requisito de despliegue.
 
 *Figura 4. Carga y listado de documentos (pestañas Todos/Biblioteca/Míos).*
 
+![Respuesta desde un .txt subido](capturas/kayou.png)
+
+*Figura 5. Pregunta respondida desde el `.txt` de la demo recién subido: el documento aparece como fuente con su similitud.*
+
 ## 14. Problemas encontrados y conclusiones
 
 ### Problemas encontrados (y cómo se resolvieron)
@@ -418,6 +424,11 @@ evidencia del requisito de despliegue.
 | Búsqueda complementaria perdida de forma intermitente | Cuando el clasificador proponía un filtro que llenaba el `top_k` (243 episodios) se saltaba la búsqueda general y se perdía la evidencia → ahora se hace **siempre** que haya filtros |
 | Índice vectorial en estado inconsistente tras reinicios múltiples del contenedor | Reconstrucción limpia de volúmenes (`docker compose down -v` + importación); E2E verificado después |
 | `NameError` al importar canciones desde el script | Faltaba el import de `import_songs` en `scripts/import_pony.py`; detectado en la verificación de idempotencia y corregido (2026-10-18) |
+| Respuestas con evidencia caían en rechazo (sobre todo en nube) | El modelo insistía en la frase de rechazo o E6 marcaba entidades «ajenas» pese a haber contexto → `generate()` reintenta con correcciones forzadas (documento citado en la pregunta o asunto en el contexto: prompt completo → prompt compacto → plantilla determinista) y `validate_answer` reformula una vez (regla 8); T04/T05 no cumplen esas condiciones y siguen rechazando siempre (bug confirmado 2026-10-19) |
+| «¿Cuántas cartas tiene Moon Box 7?» devolvía un recuento de episodios | Cualquier «cuánto/s» forzaba la intención `catalogo` y E7 contaba episodios ajenos → `CATALOG_COUNT_RE` acota el forzado a tipos del corpus y la rama de recuento por entidad se limita a episodios/capítulos; los demás recuentos van a recuperación (bug confirmado 2026-10-19) |
+| E6 rechazaba respuestas válidas de un `.txt` subido | La diversidad de 2 fragmentos por documento dejaba la mayoría de entradas de un archivo largo fuera del contexto y las cifras citadas parecían ajenas → el documento citado por nombre admite hasta 6 fragmentos (bug confirmado 2026-10-19) |
+| El LLM expandía siglas del documento con conocimiento propio | «SR20» se leía como precio y la respuesta citaba cifras no documentadas → el `.txt` de demo lleva la leyenda de siglas en el propio documento y aclara que los números son cantidades, no precios (2026-10-19) |
+| Títulos con guiones no casaban al normalizar | `_norm_text` no unificaba guiones y guiones bajos («cartas-kayou-mlp.txt») → la normalización de títulos ahora los unifica antes de comparar (2026-10-19) |
 | Riesgo de persistencia en Render free | Volúmenes persistentes o reindexación al arrancar; evaluación en curso |
 
 ### Conclusiones

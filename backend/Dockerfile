@@ -2,7 +2,7 @@
 #
 #   docker build -t ponyarchive-backend ./backend
 #
-# Ollama queda FUERA del contenedor (decisión DEC-06: modelo local en el portátil),
+# Ollama queda FUERA del contenedor (el modelo corre en local, en el portátil),
 # así que en el arranque hay que apuntar a él:
 #   OLLAMA_BASE_URL=http://host.docker.internal:11434   (Windows / Docker Desktop)
 FROM python:3.12-slim
@@ -30,7 +30,7 @@ SentenceTransformer('intfloat/multilingual-e5-small')"
 
 COPY app ./app
 COPY scripts ./scripts
-# fichas narrativas propias (DEC-10) y notas de contexto del curso (DEC-14):
+# fichas narrativas propias y notas de contexto del curso:
 # se copian a /app/seed, FUERA de /app/data, porque docker-compose monta un volumen
 # en /app/data y ocultaría lo que hubiera dentro de la imagen.
 COPY data/seed ./seed
