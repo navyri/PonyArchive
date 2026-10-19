@@ -105,5 +105,36 @@ Consecuencias y mitigaciones:
   refresh token antiguo podía entrar como otra persona (DEC-22). Con el claim
   `inst` (id de la instancia de BD) todos los tokens antiguos caducan con 401.
 - Persistencia real de usuarios/historiales en la nube requeriría una BD
-  gestionada (p. ej. Postgres free tier): fuera de alcance con la fecha de
-  entrega; documentado en el documento técnico §11.
+  gestionada (p. ej. Postgres free tier): el soporte ya está implementado
+  (ver §6); solo falta crear la instancia y fijar `DATABASE_URL`.
+
+### 6. Base de datos persistente en la nube (Neon o Supabase, free) — guía
+
+El backend acepta **cualquier Postgres** mediante la variable `DATABASE_URL`
+(`connect_args` de SQLite se aplica condicionalmente, `pool_pre_ping` activo y
+`psycopg[binary]` en `requirements-nube.txt`). Verificado contra Postgres 17:
+arranque con siembra (10 fichas narrativas + nota de curso), registro, login,
+refresh, carga de documento y chat en verde.
+
+Pasos (una sola vez, ~10 min):
+
+1. Crear cuenta gratuita en **neon.tech** (0,5 GB) o **supabase.com** → proyecto
+   nuevo → copiar la *connection string* de Postgres (la que trae `sslmode`).
+2. En Render → servicio `ponyarchive-api` → **Environment** → añadir
+   `DATABASE_URL` con la cadena y el prefijo del driver cambiado:
+   `postgres://` → `postgresql+psycopg://`, p. ej.
+   `postgresql+psycopg://usuario:pass@ep-xxx.aws.neon.tech/neondb?sslmode=require`.
+3. **Save** → Render redespliega solo.
+4. Verificar `/health` en verde y registrar un usuario: las cuentas, chats y
+   documentos **sobreviven a reinicios y despliegues**; con el claim `inst`
+   (DEC-22) las sesiones abiertas también.
+5. La BD empieza vacía: la app siembra sola las fichas narrativas y la nota
+   del curso al arrancar; para el corpus de Pony API activar
+   `IMPORT_ON_START=true` en Render (importa al primer arranque con la base
+   vacía) o llamar con un token a `POST /api/import/episodes`,
+   `/api/import/characters` y `/api/import/songs`.
+6. Smoke final: `SMOKE_BASE_URL=https://ponyarchive-api.onrender.com python
+   scripts/smoke_test.py` → debe dar 12/12.
+
+Coste: **0 USD** (free tiers de Neon/Supabase; la BD relacional pesa < 5 MB).
+Sin esta variable el servicio sigue usando SQLite efímero, tal como hasta hoy.

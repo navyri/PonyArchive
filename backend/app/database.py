@@ -6,9 +6,15 @@ from app.config import get_settings
 
 settings = get_settings()
 
+# check_same_thread solo existe en SQLite. Si la URL apunta a un motor distinto
+# (p. ej. Postgres gestionado en la nube), pasar ese argumento rompería el
+# arranque, así que se aplica condicionalmente.
+_SQLITE = settings.database_url.startswith("sqlite")
+
 engine = create_engine(
     settings.database_url,
-    connect_args={"check_same_thread": False},  # SQLite
+    connect_args={"check_same_thread": False} if _SQLITE else {},
+    pool_pre_ping=True,  # reconexión limpia tras inactividad (p. ej. Postgres serverless)
     future=True,
 )
 

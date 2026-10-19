@@ -15,6 +15,12 @@ services:
         value: 3.11.9
       - key: APP_ENV
         value: prod
+      # BD relacional gestionada (Neon/Supabase free): usuarios, chats y
+      # documentos persisten entre reinicios. Sin esta variable se usa SQLite
+      # en disco efímero (las cuentas se pierden al dormir/desplegar).
+      # Cómo configurarla: docs/despliegue-nube.md §6.
+      - key: DATABASE_URL
+        sync: false
       - key: EMBEDDINGS_PROVIDER
         value: openai
       - key: LLM_PROVIDER

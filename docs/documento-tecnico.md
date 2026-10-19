@@ -327,8 +327,11 @@ también (compatibilidad *fail-closed*).
 
 **Alcance:** el problema solo existía en la nube (disco efímero); en local y Docker la base es
 persistente y los ids no se reasignan. Verificado con token de la imagen anterior → 401 y login nuevo
-→ 200 en Docker y en la nube tras el despliegue. La solución de fondo (persistencia de usuarios y
-historiales en la nube) requiere una base gestionada; queda anotada como limitación del free tier.
+→ 200 en Docker y en la nube tras el despliegue. La solución de fondo —persistencia de usuarios y
+historiales en la nube— ya está **soportada**: el backend acepta `DATABASE_URL` con un Postgres
+gestionado (free tier de Neon/Supabase; verificado contra Postgres 17 local, DEC-23), lo que elimina
+el restablecimiento de la base y, con él, la causa del incidente. Solo falta el paso manual de crear
+la instancia y fijar la variable en Render (guía en `docs/despliegue-nube.md`).
 
 ## 12. Despliegue
 

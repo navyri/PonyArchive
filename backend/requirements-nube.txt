@@ -17,6 +17,9 @@ uvicorn[standard]==0.54.0
 python-multipart
 sqlalchemy
 aiosqlite
+# Postgres gestionado (opcional): si DATABASE_URL apunta a postgres://, la BD
+# relacional persiste entre reinicios/despliegues (ver despliegue-nube.md).
+psycopg[binary]
 
 # --- Procesamiento de documentos ---
 pypdf

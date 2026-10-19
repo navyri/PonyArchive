@@ -4,7 +4,7 @@ Variables leídas del entorno o de backend/.env (ver .env.example)."""
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import model_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -68,6 +68,15 @@ class Settings(BaseSettings):
     # --- Persistencia relacional ---
     data_dir: str = str(BACKEND_DIR / "data")
     database_url: str = f"sqlite:///{BACKEND_DIR / 'data' / 'ponyarchive.db'}"
+
+    @field_validator("database_url", mode="after")
+    @classmethod
+    def _database_url_no_vacia(cls, v: str) -> str:
+        """Un DATABASE_URL vacío (p. ej. variable declarada sin valor en el
+        panel de Render) cae al SQLite por defecto en vez de romper el
+        arranque. Para usar Postgres gestionado hay que fijarlo con valor."""
+        v = (v or "").strip()
+        return v or f"sqlite:///{BACKEND_DIR / 'data' / 'ponyarchive.db'}"
 
     # --- Carga de documentos ---
     max_upload_mb: int = 20
