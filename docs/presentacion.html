@@ -482,7 +482,7 @@ g.add_conditional_edges("evaluate_sufficiency",
         <p>Deduplicación por <code>content_hash</code> (por usuario); las cargas de un usuario no se ven desde otro.</p>
       </div>
     </div>
-    <p class="muted" style="margin-top:0.8em"><strong>Consulta:</strong> <code>TOP_K=6</code> · umbral <code>0.62</code> · bonificación +0,05 a los documentos propios recién subidos.</p>
+    <p class="muted" style="margin-top:0.8em"><strong>Consulta:</strong> <code>TOP_K=6</code> · umbral <code>0.62</code> (e5 local) / <code>0.50</code> (nube OpenAI, <code>0.45</code> para la nota del curso) · bonificación +0,05 a los documentos propios recién subidos.</p>
   </div>
   <aside class="notes">
     Estado actual: 3.100 fragmentos (1.015 documentos: 243 episodios, 555 personajes con
@@ -561,7 +561,7 @@ g.add_conditional_edges("evaluate_sufficiency",
       </div>
       <div class="card accent-1">
         <h4>Contexto del curso</h4>
-        <p>«¿A Duvan Gomez le pega la esposa?» → sí, con la nota como fuente (sim 0,904).</p>
+        <p>«¿A Duvan Gomez le pega la esposa?» → sí, con la nota como fuente (sim 0,905 local / 0,598 nube).</p>
       </div>
       <div class="card accent-3">
         <h4>Aislamiento</h4>
