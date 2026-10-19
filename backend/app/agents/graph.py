@@ -285,6 +285,23 @@ def _umbral_e1(settings, r: dict) -> float:
     return settings.similarity_threshold
 
 
+# Palabras que anclan la pregunta al dominio documentado de la biblioteca (MLP G4):
+# el clasificador de intención (sobre todo el de la nube) a veces marca «fuera_de_
+# dominio» a preguntas claramente de la serie, y «meta» a preguntas de contenido.
+_DOMINIO_MLP_RE = re.compile(
+    r"mlp|my little pony|friendship|equestria|poni|ponis|episodio|temporada|"
+    r"personaje|magia|alicorn|everfree|cutie|pegaso|unicornio|cancion|"
+    r"twilight|applejack|rainbow|pinkie|fluttershy|rarit|zecora|discord|celestia|spike",
+    re.IGNORECASE,
+)
+# Verbos de pregunta de contenido: quien los usa quiere información, no alcance
+_CONTENIDO_RE = re.compile(
+    r"trata|resume|sobre\b|h[aá]blame|cu[eé]ntame|describe|explica|significa|"
+    r"qu[eé] es|qu[eé] son|quien es|qui[eé]n es|quienes son",
+    re.IGNORECASE,
+)
+
+
 def validate_intent(state: AgentState) -> dict:
     """Nodo 2 del flujo del enunciado: validar la intención de la pregunta."""
     question = state["question"]
@@ -355,6 +372,15 @@ def validate_intent(state: AgentState) -> dict:
         citado = _documented_title_in(question)
         if citado:
             intent, titulo = "factual", citado
+
+    # Correcciones deterministas de clasificación errónea (observadas con el
+    # clasificador de la nube): palabras del dominio MLP anulan un "fuera_de_
+    # dominio" falso (T04 «sulfato de cobre» no tiene ninguna y sigue rechazando),
+    # y verbos de contenido convierten un "meta" falso en factual.
+    if intent == "fuera_de_dominio" and _DOMINIO_MLP_RE.search(question):
+        intent = "factual"
+    if intent == "meta" and _CONTENIDO_RE.search(question):
+        intent = "factual"
 
     # La enumeración/catálogo necesita el tipo de documento; se infiere de la propia
     # pregunta y manda sobre lo que proponga el clasificador (que puede equivocarse).
@@ -997,6 +1023,7 @@ def generate(state: AgentState) -> dict:
     mencion = next(
         (r for r in retrieved if r["metadata"].get("por_mencion")), None
     )
+    toca = _context_toca_el_asunto(state["question"], retrieved)
     if refused and mencion:
         # La fuente citada está en el contexto: el rechazo no procede (reintento).
         answer = get_llm().invoke(
@@ -1008,7 +1035,7 @@ def generate(state: AgentState) -> dict:
             "la biblioteca: <el dato puntual preguntado>».\n"
         ).content.strip()
         refused = answer.startswith(REFUSAL_MESSAGE)
-    if refused and _context_toca_el_asunto(state["question"], retrieved):
+    if refused and toca:
         # El contexto sí nombra el asunto (p. ej. «los Elementos» en las sinopsis, o
         # «Alicorn» en inglés para «alicornios»): el rechazo total pierde lo
         # documentado; se aplica la regla 7 (reintento único).
@@ -1022,6 +1049,22 @@ def generate(state: AgentState) -> dict:
             "frase; no rechaces de plano.\n"
         ).content.strip()
         refused = answer.startswith(REFUSAL_MESSAGE)
+    if refused and toca:
+        # Tercer intento con prompt compacto: el prompt completo con todas las reglas
+        # a veces confunde al clasificador/generador de la nube; una instrucción breve
+        # y directa funciona mejor (T04/T05 no llegan aquí: toca es False para ellos).
+        answer = get_llm().invoke(
+            "Eres PonyArchive, un agente que responde SOLO con sus fragmentos "
+            "documentales.\n\nFRAGMENTOS:\n"
+            + _context_blocks(retrieved)
+            + f"\nPREGUNTA: {state['question']}\n\n"
+            "INSTRUCCIÓN FINAL: los fragmentos SÍ tratan el asunto de la pregunta. "
+            "Resume en pocas frases lo que dicen, empezando por «Dato documentado:». "
+            "Si el dato puntual no aparece, termina con «No está documentado en la "
+            "biblioteca: <lo que falta>». PROHIBIDO empezar con «No tengo suficiente "
+            "información».\n"
+        ).content.strip()
+        refused = answer.startswith(REFUSAL_MESSAGE)
     if refused and mencion:
         # Último recurso determinista: el usuario nombró un documento que está en el
         # contexto y el modelo insiste en rechazar. Se aplica la regla 7 a mano para
@@ -1032,6 +1075,15 @@ def generate(state: AgentState) -> dict:
             f"Dato documentado (del documento citado en tu pregunta): {fragmento}…\n\n"
             "No está documentado en la biblioteca: el dato puntual que se pregunta; "
             "lo demás sí está respaldado por el documento citado."
+        )
+        refused = False
+    elif refused and toca and retrieved:
+        # Mismo respaldo para el caso «asunto en el contexto»: se cita el fragmento
+        # recuperado de mayor similitud en lugar de perder lo documentado.
+        fragmento = " ".join((retrieved[0]["text"] or "").split())[:500]
+        answer = (
+            f"Dato documentado (fragmento recuperado por tu pregunta): {fragmento}…\n\n"
+            "No está documentado en la biblioteca: el dato puntual que se pregunta."
         )
         refused = False
     return {"answer": answer, "sources": [] if refused else _source_list(retrieved), "refused": refused}
