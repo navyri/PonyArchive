@@ -207,6 +207,7 @@ catalog_query --> persist ; reject --> persist ; persist --> END
 > maltrato de ella» (fuente citada, similitud 0,905 con e5 local y 0,598 con OpenAI) — sin introducir
 > conocimiento inventado. Variaciones
 > de la misma pregunta («¿le deja morados?», «¿por qué está morado?», «¿es víctima de maltrato?»)
+> y formas genéricas («¿qué pasa con Duvan?», «cuéntame de Duvan», «¿cómo está Duvan?»)
 > responden igual en local y en nube.
 
 ## 8. Modelo local utilizado y base de datos vectorial
@@ -272,7 +273,7 @@ El enunciado exige **al menos 2**; se implementaron **7** (E1–E7):
 |---|---|---|
 | **E1** | Umbral de similitud | Solo se aceptan fragmentos por encima del umbral calibrado por espacio de embeddings (`SIMILARITY_THRESHOLD`: 0,62 con e5 local, 0,50 con OpenAI; la nota de contexto del curso, documento corto y de confianza del aula, tiene umbral propio 0,45 en nube); los descartados se registran en las notas de recuperación |
 | **E2** | Nodo de suficiencia | `evaluate_sufficiency`: antes de generar, decide con reglas explícitas si hay evidencia; sin ella, no se invoca al LLM y se rechaza |
-| **E3** | Prompt restringido | `generate` ordena responder solo con el contexto recuperado, citar con `[n]` y no completar con conocimiento previo |
+| **E3** | Prompt restringido | `generate` ordena responder solo con el contexto recuperado, citar con `[n]`, no completar con conocimiento previo y, cuando la pregunta es genérica sobre una persona o tema presente en el contexto («¿qué pasa con X?»), resumir lo documentado en lugar de rechazar por amplitud |
 | **E4** | Rechazo literal | Mensaje fijo exacto: «No tengo suficiente información en mi base de conocimiento para responder esa pregunta.» (casos T04/T05) |
 | **E5** | Fuentes obligatorias | La respuesta viaja con su lista de fuentes (título, tipo, similitud); la UI las muestra y un giro sin fuentes se considera inválido |
 | **E6** | Verificación de entidades | `validate_answer` comprueba que las entidades/cifras citadas aparecen en el contexto (tolerando la traducción del nombre común: basta la última palabra distintiva — «Princesa Celestia» → «celestia»); si no, deriva al rechazo |

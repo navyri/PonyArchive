@@ -103,6 +103,10 @@ REGLAS INQUEBRANTABLES:
 6. Responde en español, claro y breve, pero copia los nombres propios tal como
    aparecen en los fragmentos (p. ej. "Princess Celestia", no "Princesa Celestia"):
    así quien lea puede rastrearlos en la fuente.
+7. Si la pregunta es genérica sobre una persona o tema que SÍ aparece en el contexto
+   (p. ej. «¿qué pasa con X?», «cuéntame de X», «¿cómo está X?»), resume lo que está
+   documentado sobre esa persona o tema y aclara qué detalles no constan; no rechaces
+   solo porque la pregunta sea amplia.
 {extra_rule}
 
 CONTEXTO DOCUMENTAL:
@@ -488,7 +492,7 @@ def generate(state: AgentState) -> dict:
     extra_rule = ""
     if state.get("retry_count", 0) > 0:
         extra_rule = (
-            "7. CORRECCIÓN: tu respuesta anterior usaba entidades que no aparecen en el contexto. "
+            "8. CORRECCIÓN: tu respuesta anterior usaba entidades que no aparecen en el contexto. "
             "Reformula usando EXCLUSIVAMENTE los términos presentes en los fragmentos."
         )
     prompt = GENERATE_PROMPT.format(
