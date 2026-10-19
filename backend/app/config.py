@@ -63,6 +63,7 @@ class Settings(BaseSettings):
     # Anti-alucinación E1. None = calibrado por el espacio de embeddings activo:
     # la similitud coseno no es comparable entre modelos.
     similarity_threshold: float | None = None
+    similarity_threshold_nota: float | None = None
 
     # --- Persistencia relacional ---
     data_dir: str = str(BACKEND_DIR / "data")
@@ -90,12 +91,20 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _umbral_similitud(self):
-        """Umbral E1 por defecto según el espacio de embeddings."""
+        """Umbral E1 por defecto según el espacio de embeddings activo."""
         if self.similarity_threshold is None:
             # e5 local: relevante ~0.65-0.90; OpenAI: relevante ~0.55-0.80,
             # sin evidencia ~0.45, ajeno ~0.20 (batería T01/T05/T11 del smoke).
             self.similarity_threshold = (
                 0.50 if self.embeddings_provider == "openai" else 0.62
+            )
+        if self.similarity_threshold_nota is None:
+            # La nota de contexto del curso es un documento corto y de confianza
+            # explícita: con OpenAI sus preguntas de variación rondan 0.47-0.60,
+            # así que se le asigna umbral propio sin relajar el resto (T05 0.455
+            # sigue rechazando: la nota no entra ni en su top-20).
+            self.similarity_threshold_nota = (
+                0.45 if self.embeddings_provider == "openai" else self.similarity_threshold
             )
         return self
 

@@ -182,6 +182,13 @@ def _documented_title_in(question: str) -> str | None:
     )
 
 
+def _umbral_e1(settings, r: dict) -> float:
+    """Umbral E1 aplicable al fragmento: la nota de contexto del curso usa el suyo."""
+    if r.get("metadata", {}).get("doc_type") == "nota_curso":
+        return settings.similarity_threshold_nota
+    return settings.similarity_threshold
+
+
 def validate_intent(state: AgentState) -> dict:
     """Nodo 2 del flujo del enunciado: validar la intención de la pregunta."""
     question = state["question"]
@@ -328,12 +335,12 @@ def retrieve(state: AgentState) -> dict:
     results = unique
 
     # Auditoría: qué descarta el umbral (se conserva para explicar el rechazo)
-    accepted = [r for r in results if r["score"] >= settings.similarity_threshold]
-    rejected = [r for r in results if r["score"] < settings.similarity_threshold]
+    accepted = [r for r in results if r["score"] >= _umbral_e1(settings, r)]
+    rejected = [r for r in results if r["score"] < _umbral_e1(settings, r)]
     if rejected:
         notes.append(
             f"{len(rejected)} fragmento(s) descartados por similitud "
-            f"< {settings.similarity_threshold} (máximo {max(r['score'] for r in rejected):.3f})."
+            f"bajo su umbral E1 (máximo {max(r['score'] for r in rejected):.3f})."
         )
     top = accepted[: settings.top_k]
     if top:
@@ -345,7 +352,6 @@ def retrieve(state: AgentState) -> dict:
 def evaluate_sufficiency(state: AgentState) -> dict:
     """Nodos 4 y 6 (estrategias E1 y E2): decide si el contexto permite responder."""
     settings = get_settings()
-    threshold = settings.similarity_threshold
     retrieved = state.get("retrieved", [])
     intent = state.get("intent", "factual")
 
@@ -389,10 +395,12 @@ def evaluate_sufficiency(state: AgentState) -> dict:
             "refusal_reason": "Ningún fragmento de la biblioteca superó el umbral de similitud.",
         }
 
-    if max(r["score"] for r in retrieved) < threshold:
+    mejor = max(retrieved, key=lambda r: r["score"])
+    umbral_mejor = _umbral_e1(settings, mejor)
+    if mejor["score"] < umbral_mejor:
         return {
             "sufficient": False,
-            "refusal_reason": f"La similitud máxima ({max(r['score'] for r in retrieved):.3f}) es inferior al umbral ({threshold}).",
+            "refusal_reason": f"La similitud máxima ({mejor['score']:.3f}) es inferior al umbral ({umbral_mejor}).",
         }
 
     return {"sufficient": True, "refusal_reason": None}
