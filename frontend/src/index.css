@@ -505,6 +505,41 @@ textarea:focus {
   box-shadow: 0 0 0 1px rgba(121, 217, 205, 0.4);
 }
 
+/* Campo de contraseña con alternador de visibilidad (ojito) */
+.field-input {
+  position: relative;
+}
+
+.field-input input {
+  padding-right: 2.5rem;
+}
+
+.pw-toggle {
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: #7a6b93;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.pw-toggle:hover,
+.pw-toggle:focus-visible {
+  color: var(--aura);
+  background: rgba(121, 217, 205, 0.1);
+  outline: none;
+}
+
 .card {
   background: var(--surface);
   border: 1px solid var(--line);
