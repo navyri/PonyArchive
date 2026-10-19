@@ -44,8 +44,20 @@ META_PATTERNS = (
 SEASON_COUNT_RE = re.compile(r"cu[aá]nt(as|os)[^.?!]{0,60}temporada", re.IGNORECASE)
 SONG_COUNT_RE = re.compile(r"cu[aá]nt(as|os)[^.?!]{0,40}cancion", re.IGNORECASE)
 
-# Recuento o enumeración: la mención de una entidad no convierte la consulta en factual
-COUNT_RE = re.compile(r"cu[aá]nt|enumera|numera|listado|lista|recuento", re.IGNORECASE)
+# Recuento o enumeración del catálogo: la mención de una entidad no convierte la
+# consulta en factual.
+COUNT_RE = re.compile(r"enumera|numera|listado|lista|recuento", re.IGNORECASE)
+
+# Un recuento solo lo resuelve el catálogo SQL si pregunta por un tipo que este
+# conoce (episodios, capítulos, canciones, personajes, temporadas u otros
+# documentos indexados). «¿Cuántas cartas tiene Moon Box 7?» pide un dato de un
+# documento subido, no un recuento del corpus Pony: forzarlo al catálogo
+# respondía «ningún episodio menciona a Moon Box 7» (bug del 2026-10-19).
+CATALOG_COUNT_RE = re.compile(
+    r"cu[aá]nt(as|os)[^.?!]{0,40}"
+    r"(episodio|cap[ií]tulo|canci[oó]n|personaje|temporada|documento|fragmento|ficha)",
+    re.IGNORECASE,
+)
 
 # Tipo de documento citado en la pregunta, para resolver catálogo sin depender del LLM
 _DOC_TYPE_WORDS = (
@@ -225,8 +237,10 @@ def _source_list(retrieved: list[dict]) -> list[dict]:
 
 
 def _norm_text(s: str) -> str:
-    """Minúsculas sin acentos ni puntuación."""
-    table = str.maketrans("áéíóúüñ?¡¿.,:;!()", "aeiouun          ")
+    """Minúsculas sin acentos ni puntuación (también guiones y guiones bajos:
+    «cartas-kayou-mlp.txt» debe casar con «cartas kayou» en la pregunta, no
+    formar un token único que impide detectar la entidad)."""
+    table = str.maketrans("áéíóúüñ?¡¿.,:;!()-_", "aeiouun" + " " * 12)
     return " ".join(s.lower().translate(table).split())
 
 
@@ -342,10 +356,12 @@ def validate_intent(state: AgentState) -> dict:
     if SEASON_COUNT_RE.search(question) or SONG_COUNT_RE.search(question):
         intent = "catalogo"
 
-    # Cualquier recuento («cuántos episodios hay de Rarity») se resuelve con SQL:
-    # dejarlo a la recuperación semántica hace que el LLM cuente los fragmentos
-    # recuperados y anuncie un número que no es el del catálogo.
-    if re.search(r"cu[aá]nt(as|os)\b", question, re.IGNORECASE):
+    # Un recuento del catálogo («cuántos episodios hay de Rarity») se resuelve
+    # con SQL: dejarlo a la recuperación semántica hace que el LLM cuente los
+    # fragmentos recuperados y anuncie un número que no es el del catálogo. Solo
+    # se fuerza si el recuento nombra un tipo del corpus; los recuentos de datos
+    # externos («cuántas cartas tiene Moon Box 7») van a la recuperación.
+    if CATALOG_COUNT_RE.search(question):
         intent = "catalogo"
 
     # Enumeración del catálogo en cualquier redacción («lista las canciones»,
@@ -355,13 +371,13 @@ def validate_intent(state: AgentState) -> dict:
         intent = "catalogo"
 
     # Mención literal de un nombre documentado: corrige intenciones erróneas del
-    # clasificador (meta/catalogo/fuera_de_dominio) salvo que pida recuentos, que
-    # siempre van al catálogo por SQL.
+    # clasificador (meta/catalogo/fuera_de_dominio) salvo que pida un recuento del
+    # corpus o un listado, que se resuelven con SQL (E7).
     entidades = _tokens_entidad(question, state.get("user_id"))
     if (
         entidades
         and intent in {"meta", "catalogo", "fuera_de_dominio", "ambigua"}
-        and not COUNT_RE.search(question)
+        and not (CATALOG_COUNT_RE.search(question) or COUNT_RE.search(question))
     ):
         intent = "factual"
 
@@ -564,7 +580,12 @@ def retrieve(state: AgentState) -> dict:
         if len(top) >= settings.top_k:
             break
         doc_id = r["metadata"].get("doc_id")
-        if por_doc.get(doc_id, 0) >= 2:
+        # La diversidad evita que un solo documento monopolice el contexto, pero
+        # si el usuario lo cita por nombre quiere leer ESE documento: se le da
+        # más presupuesto (bug del 2026-10-19: «¿qué rarezas tiene Moon Box 7?»
+        # rechazaba porque solo 5 de 24 fragmentos del .txt subido entraban).
+        limite_doc = 6 if r["metadata"].get("por_mencion") else 2
+        if por_doc.get(doc_id, 0) >= limite_doc:
             continue
         por_doc[doc_id] = por_doc.get(doc_id, 0) + 1
         top.append(r)
@@ -808,9 +829,14 @@ def catalog_query(state: AgentState) -> dict:
 
     # Recuento acotado a una entidad citada («cuántos episodios hay de Rarity»):
     # se cuenta desde el texto documental, no desde los fragmentos recuperados.
-    if titulo and es_conteo:
-        tipo_entidad = _doc_type_from_question(question) or "episodio"
-        mencionados = _episodes_mentioning(titulo) if tipo_entidad == "episodio" else []
+    # Solo aplica a episodios/capítulos: la rama asumía «episodio» por defecto y
+    # respondía «ningún episodio menciona a Moon Box 7» a preguntas sobre cartas
+    # (bug del 2026-10-19).
+    if titulo and es_conteo and (
+        _doc_type_from_question(question) == "episodio"
+        or re.search(r"episodio|cap[ií]tulo", question, re.IGNORECASE)
+    ):
+        mencionados = _episodes_mentioning(titulo)
         if mencionados:
             lines = [
                 "Dato documentado (consulta directa al catálogo, no por similitud):"

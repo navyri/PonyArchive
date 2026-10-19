@@ -464,7 +464,7 @@ g.add_conditional_edges("evaluate_sufficiency",
   <div class="body">
     <h2>Base vectorial y carga de documentos</h2>
     <div class="flow" style="margin-top:0.5em">
-      <div class="flow-step" style="--tint:var(--lilac)"><span class="t">Cargar</span><span class="d">Pony API · semillas · .txt/.md/.pdf del usuario</span></div>
+      <div class="flow-step" style="--tint:var(--lilac)"><span class="t">Cargar</span><span class="d">Pony API · semillas · .txt/.md del usuario</span></div>
       <span class="flow-arrow">-&gt;</span>
       <div class="flow-step" style="--tint:var(--lilac)"><span class="t">Trocear</span><span class="d">fragmentos con solapamiento</span></div>
       <span class="flow-arrow">-&gt;</span>
@@ -487,7 +487,9 @@ g.add_conditional_edges("evaluate_sufficiency",
   <aside class="notes">
     Estado actual: 3.100 fragmentos (1.015 documentos: 243 episodios, 555 personajes con
     descripción de Fandom, 192 canciones, fichas narrativas, subidos y notas), CC BY-SA.
-    Si preguntan por PDF: el pipeline admite cualquier texto extraído.
+    Formatos de carga: la interfaz (la que se usa en la demo) admite .txt y .md.
+    El endpoint API también acepta .csv/.pdf/.docx (pypdf/python-docx), pero en
+    la demo se sube un .txt.
   </aside>
 </section>
 

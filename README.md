@@ -148,6 +148,7 @@ PonyArchive/
 │   ├── documento-tecnico.md  # documento técnico (fuente)
 │   ├── documento-tecnico.pdf # documento técnico (PDF)
 │   ├── presentacion.pdf      # láminas de la demo
+│   ├── cartas-kayou-mlp.txt  # documento de ejemplo para la demo (carga en vivo)
 │   ├── capturas/             # capturas de pantalla
 │   └── despliegue-nube.md    # checklist del despliegue en nube
 ├── render.yaml               # blueprint del backend en Render

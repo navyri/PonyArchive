@@ -1,0 +1,129 @@
+CARTAS KAYOU DE MY LITTLE PONY: GUÍA GENERAL DE SETS, IDIOMAS Y RAREZAS
+Documento de referencia para consultas de la biblioteca. Elaborado el 19 de octubre de 2026 a partir de las fuentes del apartado 10. Solo recoge información general de los sets: no registra posesión, faltantes ni estadísticas de coleccionistas.
+
+1. QUÉ SON LAS CARTAS KAYOU DE MLP
+Kayou (卡游) es una empresa china de cartas coleccionables fundada en 2011. Sus cartas de My Little Pony son productos oficiales con licencia de Hasbro. Son cartas para coleccionar: la mayoría de sus líneas no son jugables; la única excepción es el My Little Pony Trading Card Game (apartado 8). Kayou anunció su lanzamiento en Europa en febrero de 2026, con Reino Unido entre los primeros mercados y con My Little Pony entre las franquicias principales. La web oficial es kayouofficial.com.
+
+2. IDIOMAS DE LAS CARTAS
+Chino simplificado: las cartas originales de Kayou MLP se imprimieron en chino. Las cartas básicas de personajes (números 1 a 60) llevan en el dorso el nombre del pony en chino y en inglés, además de raza y género (My Little Wiki).
+Inglés: los sets posteriores se imprimieron también en inglés o tuvieron versión en inglés. La guía de referencia registra por separado las cantidades en chino y en inglés de cada carta, lo que indica que muchos sets existen en ambas variantes. La comunidad distingue las ediciones por el código impreso: en los sets Moon, la versión china empieza por HY y la inglesa por MLPME (Reddit r/mylittlepony). Algunas cartas en inglés de Moon 1 conservan texto en chino (colectores en Facebook). El mini-set MLP INT es exclusivo en inglés.
+Japón: el My Little Pony TCG de Kayou se vende en Japón en japonés (web oficial mlptcg-jp.com, distribuye KAYOU Japón en kayou110.co.jp). Los mazos iniciales SD01A a SD01F de la guía incluyen nombres de carta en japonés, por ejemplo Owlowiscious / アロイシウス y Fluttershy / フラッターシャイ.
+
+3. CÓMO SE LEE UN CÓDIGO IMPRESO
+Cada carta lleva un código impreso con el set, la rareza, el número dentro del set y a veces un sufijo. Ejemplo: HY07-R-001L1 significa set HY07, rareza R, carta 001, sufijo L1. Kayou no explica el significado del sufijo L (L1, L2, L3). Ejemplos reales de la guía: YH-F01-001 en Moon Box 1, QY03-N-001L1 en Fun Moments 3, FX01-SSR-001L3 en Adventure Trip Suitcase 1, YH-PR-001 en una promo, SD01A-SR01 en el mazo Twilight Sparkle y MLP-INT UR01-0163 en MLP INT.
+Un prefijo ◇ delante de la rareza (◇UR, ◇AR, ◇CR, ◇ZR, ◇N) marca una variante paralela de una carta que también existe en versión normal (Collector's Edge). El símbolo ※ delante de la rareza (※GR, ※SPR, ※CR, ※RR, ※PR) marca variantes que las bases de datos listan aparte; las fuentes consultadas no explican su significado exacto.
+
+4. SIGLAS DE RAREZA
+Advertencia: cada línea de Kayou usa su propia escalera de rarezas; la misma sigla no significa lo mismo ni ocupa el mismo puesto en todos los sets. Por ejemplo, SSR es Super Secret Rare en Moon, pero otras líneas Kayou usan siglas iguales con otros nombres (en Naruto, SSR es Super Spark Rare en una de las series).
+Significados documentados en las fuentes:
+SC = Secret Rare (web oficial Kayou). SGR = Super Golden Rare (web oficial Kayou). LSR = Limited Secret Rare (web oficial Kayou). UR = Ultra Rare (web oficial Kayou). HR = Holo Rare (web oficial Kayou). SSR = Super Secret Rare (web oficial Kayou, Moon). R = Rare (web oficial Kayou).
+SR = Super Rare, N = Normal, ST = Special Transparent, TR = Transparent Rare, FR = Fun Rare (lista comunitaria de rarezas MLP).
+ZR = Zenith Rare, XR = Extreme Rare, OR = Origin Rare, BP = Brush Rare, SCR = Sketch Rare; TGR, MTR y TR son cartas transparentes (guía de Collector's Edge).
+C = común (Common) y U = poco común (Uncommon) en la línea jugable. PR = promocional por contexto de los sets de promos.
+Siglas sin significado documentado en las fuentes consultadas: PTR, BASE, CR, UGR, GR, SPR, RR, ER, USR, AR, SP, REDEMPTION, TPR, PLD, AP, KS, K9, TK, EPR, PIN, ACR, L3, L4A, L4B, L5, DHK, MT, ZH, CH, SF, ZP, YD, DA, Ag, Au, UR01, UR02, UR03.
+
+5. ÍNDICE MAESTRO DE SETS
+La guía de referencia cubre 48 productos de Kayou MLP, agrupados así:
+Moon (Brilliant-Bright Moon Box): Moon Box 1 a Moon Box 11 (11 sets).
+Rainbow: Rainbow Box 1 a Rainbow Box 4 y Rainbow Pack Series 5 (5 sets).
+Fun Moments: Fun Moments Box 1 a Fun Moments Box 7 (7 sets).
+Adventure Trip: Adventure Trip Suitcase 1, Adventure Trip Suitcase 2 y Adventure Trip Suitcase 2 Special Gift (3).
+Pony Life: Pony Life 1 y Pony Life 2 (2).
+Fortune's Departure: Gift Box 1 y Gift Box 2 (2).
+Equestria Girls: Equestria Girls 1 (1).
+Mazos iniciales del TCG: Twilight Sparkle, Fluttershy, Pinkie Pie, Applejack, Rainbow Dash y Rarity, todos fechados en abril de 2025 (6).
+Sobres y cajas: Starter Booster, Fantasy Wonderland, Discord Moment, Nightmere Night y Dispel Cold (5).
+Promos y otros: MLP Promo, MLP Blister, MLP INT, MLP Other, MLPG Promo y MLPG Other (6).
+Total: 11+5+7+3+2+2+1+6+5+6 = 48 productos. El catálogo waifucards.app/sets/mlp lista 69 entradas Kayou de MLP, una cobertura mayor que la de esta guía.
+
+6. DETALLE POR SET: FECHA, TOTAL Y RAREZAS
+Los datos de este apartado proceden de la guía colectora de referencia; el total es la suma de las cartas listadas por rareza.
+Cada línea tiene el formato «SET — fecha — total de cartas — rareza cantidad, rareza cantidad…». El número que sigue a cada sigla indica CUÁNTAS cartas de esa rareza tiene el set (por ejemplo, «SGR 8» significa 8 cartas SGR en el set); no es un precio, un valor de mercado ni un código de rareza.
+
+Serie Moon (Brilliant-Bright Moon Box) — significados documentados de sus siglas (web oficial de Kayou salvo indicación): R = Rare, SR = Super Rare (lista comunitaria), HR = Holo Rare, SSR = Super Secret Rare, UR = Ultra Rare, LSR = Limited Secret Rare, SGR = Super Golden Rare, SC = Secret Rare; PTR sin significado documentado:
+Moon Box 1 — octubre de 2021 — 157 cartas — R 40, SR 20, HR 30, SSR 27, UR 18, LSR 15, SGR 7.
+Moon Box 2 — septiembre de 2022 — 153 cartas — R 40, SR 20, HR 30, SSR 20, UR 15, LSR 15, SGR 7, SC 6.
+Moon Box 3 — marzo de 2023 — 162 cartas — R 40, SR 20, HR 30, SSR 20, UR 15, LSR 24, SGR 7, SC 6.
+Moon Box 4 — noviembre de 2023 — 132 cartas — R 20, SR 20, HR 30, SSR 20, UR 15, LSR 15, SGR 6, SC 6.
+Moon Box 5 — 12 de abril de 2024 — 154 cartas — R 40, SR 20, HR 30, SSR 20, UR 15, LSR 15, SGR 8, SC 6.
+Moon Box 6 — septiembre de 2024 — 152 cartas — R 30, SR 20, SSR 20, PTR 36, UR 16, LSR 15, SGR 8, SC 7.
+Moon Box 7 — marzo de 2025 — 186 cartas — R 29, SR 20, HR 36, SSR 54, UR 16, LSR 15, SGR 8, SC 8.
+Moon Box 8 — junio de 2025 — 189 cartas — R 30, SR 20, SSR 54, HR 30, UR 16, LSR 16, SGR 8, ZR 7, SC 7, ◇ZR 1.
+Moon Box 9 — septiembre de 2025 — 158 cartas — R 30, SR 20, SSR 20, HR 30, UR 19, LSR 16, SGR 8, ZR 7, SC 7, ◇ZR 1.
+Moon Box 10 — diciembre de 2025 — 158 cartas — R 30, SR 20, SSR 20, HR 30, UR 18, LSR 16, SGR 8, ZR 7, SC 7, ◇ZR 2.
+Moon Box 11 — abril de 2026 — 162 cartas — R 30, SR 20, SSR 26, HR 30, UR 16, LSR 16, SGR 8, ZR 7, SC 7, ◇ZR 2.
+
+Serie Rainbow:
+Rainbow Box 1 — junio de 2021 — 107 cartas — R 40, SR 20, SSR 15, UR 12, TR 15, TGR 5.
+Rainbow Box 2 — noviembre de 2022 — 116 cartas — R 40, SR 20, SSR 20, UR 15, TR 15, TGR 6.
+Rainbow Box 3 — agosto de 2024 — 146 cartas — R 30, SR 15, SSR 15, FR 18, TR 12, UR 15, USR 8, TGR 8, MTR 18, XR 7.
+Rainbow Box 4 — febrero de 2025 — 146 cartas — R 30, SR 15, SSR 15, FR 18, MTR 18, TR 12, TGR 8, UR 15, USR 8, XR 7.
+Rainbow Pack Series 5 — noviembre de 2025 — 170 cartas — R 30, SR 14, SSR 15, FR 18, ST 20, BASE 18, TR 12, TGR 8, UR 19, USR 8, XR 8.
+
+Serie Fun Moments:
+Fun Moments Box 1 — diciembre de 2023 — 124 cartas — N 20, ◇N 20, R 35, SR 15, SSR 15, UR 10, CR 9.
+Fun Moments Box 2 — junio de 2024 — 127 cartas — N 20, ◇N 20, R 35, SR 15, SSR 15, UR 10, CR 12.
+Fun Moments Box 3 — octubre de 2024 — 127 cartas — N 20, ◇N 20, R 35, SR 15, SSR 15, UR 10, CR 12.
+Fun Moments Box 4 — abril de 2025 — 127 cartas — N 20, ◇N 20, R 35, SR 15, SSR 15, UR 10, CR 12.
+Fun Moments Box 5 — julio de 2025 — 136 cartas — N 20, ◇N 20, R 35, SR 15, SSR 15, UR 10, UGR 9, CR 12.
+Fun Moments Box 6 — noviembre de 2025 — 148 cartas — N 20, ◇N 20, R 35, SR 15, SSR 15, UR 10, UGR 9, CR 12, ◇CR 12.
+Fun Moments Box 7 — marzo de 2026 — 151 cartas — N 20, ◇N 20, R 35, SR 15, SSR 15, UR 13, UGR 9, CR 12, ◇CR 12.
+
+Serie Adventure Trip:
+Adventure Trip Suitcase 1 — diciembre de 2024 — 82 cartas — SSR 20, SCR 12, UR 10, USR 10, AR 9, OR 6, BP 6, ◇AR 9.
+Adventure Trip Suitcase 2 — sin fecha en la guía — 105 cartas — SSR 20, SCR 18, UR 18, USR 15, AR 9, OR 7, BP 9, ◇AR 9.
+Adventure Trip Suitcase 2 Special Gift — septiembre de 2025 — 9 cartas — ◇AR 9.
+
+Serie Pony Life:
+Pony Life 1 — agosto de 2023 — 75 cartas — SR 20, SSR 12, UR 6, ◇UR 6, LSR 6, ◇LSR 6, SGR 12, SP 5, REDEMPTION 2.
+Pony Life 2 — junio de 2025 — 111 cartas — SR 24, SSR 18, UR 15, ◇UR 9, LSR 9, ◇LSR 9, SGR 12, SP 13, REDEMPTION 2.
+
+Serie Fortune's Departure (cajas de regalo):
+Fortune's Departure Gift Box 1 — diciembre de 2024 — 36 artículos — PIN 6, ACR 6, L3 6, L4A 6, L4B 6, L5 6.
+Fortune's Departure Gift Box 2 — enero de 2026 — 111 artículos — DHK 2, MT 6, ◇SP 6, SP 8, ZH 8, CH 15, TR 18, ◇ST 18, ST 18, Ag 6, Au 6.
+
+Serie Equestria Girls:
+Equestria Girls 1 — octubre de 2024 — 87 cartas — SF 22, ZP 20, YD 18, DA 20, SP 7.
+
+Mazos iniciales del My Little Pony TCG (SD01A a SD01F):
+Los seis mazos iniciales Twilight Sparkle, Fluttershy, Pinkie Pie, Applejack, Rainbow Dash y Rarity — abril de 2025 — 21 cartas cada uno — C 9, U 4, SR 2, ER 1, SPR 4, RR 1. Corresponden a la línea Friendships Begin, los mazos de un pony cada uno con los que arranca el TCG; la guía registra en ellos nombres de carta en japonés, coherentes con la edición japonesa del juego.
+
+Sobres y cajas:
+Starter Booster Pack — abril de 2025 — 62 cartas — C 9, U 7, SR 6, ER 6, SPR 10, GR 6, CR 6, RR 6, ※RR 6.
+Fantasy Wonderland — mayo de 2025 — 179 cartas — C 48, U 18, SR 14, ER 6, SPR 28, GR 12, CR 12, RR 6, ※GR 6, ※SPR 11, ※CR 12, ※RR 6. MLP Merch lo clasifica en la línea Trading Card Game Booster Pack.
+Discord Moment — julio de 2025 — 179 cartas — C 48, U 18, SR 14, ER 6, SPR 28, GR 12, CR 12, RR 6, ※GR 6, ※SPR 11, ※CR 12, ※RR 6.
+Nightmere Night — octubre de 2025 — 178 cartas — C 48, U 18, SR 14, ER 6, SPR 28, GR 12, CR 12, RR 6, ※GR 5, ※SPR 11, ※CR 12, ※RR 6.
+Dispel Cold — enero de 2026 — 185 cartas — C 48, U 18, SR 14, ER 6, SPR 28, TK 6, GR 12, CR 12, RR 6, ※GR 6, ※SPR 11, ※CR 12, ※RR 6.
+
+Promos y otros:
+MLP Promo — promociones de 2022 a 2025 — 70 cartas — PR 69, ◇PR 1.
+MLP Blister — promociones variadas — 3 cartas — AR 3.
+MLP INT — mini-set promocional exclusivo en inglés — 10 cartas — UR01 3, UR02 1, UR03 1, EPR 5.
+MLP Other — promociones y eventos variados — 33 cartas — ◇UR 2, ◇LSR 2, SPR 12, TPR 2, PR 1, PLD 2, AP 5, KS 6, K9 1.
+MLPG Promo — sin fecha en la guía — 12 cartas — PR 6, ※PR 6.
+MLPG Other — sin fecha en la guía — 1 carta — TK 1.
+
+7. EDICIONES INTERNACIONALES EN INGLÉS
+La numeración internacional no coincide con la de las cajas chinas y las fuentes no documentan la correspondencia entre ambas. Ejemplo: Moon Box 1 (caja china, octubre de 2021, 157 cartas) no es lo mismo que Moon Edition Series 1 (edición internacional en inglés, septiembre de 2025, 186 cartas).
+Moon Edition Series 1 — 186 cartas en 8 niveles: SC 7, SGR 8, LSR 15, UR 16, HR 36, SSR 54, SR 20, R 30. Lanzamiento: septiembre de 2025. Formato: 8 cartas por sobre, 24 sobres por caja. Probabilidades publicadas por Kayou: en 20 de cada 24 sobres, 3R + 1SR + 1HR + 1SSR + 2 cartas de entre HR, SSR, UR y LSR; en los otros 4 sobres, esas 2 posiciones pueden traer LSR, SGR o SC.
+Moon Edition Series 2 y Moon Edition Series 3 — Kayou las lista en su web; Series 3 tiene 290 cartas, con niveles ◇ZR 3, SC 7, ZR 14 y SGR 16, y la ranura superior aparece en la mitad de los sobres (Collector's Edge, citando a Kayou).
+Rainbow Edition Series 1 — 146 cartas, 5 cartas por sobre y 20 sobres por caja; niveles altos XR 7, USR 8 y UR 15; la ranura superior aparece en 7 de cada 20 sobres (Collector's Edge).
+Star Edition Series 1 — 105 cartas, 3 cartas por mini caja y 16 mini cajas por caja; niveles altos ◇AR 9, BP 9, OR 7 y AR 9; OR, BP o ◇AR aparecen en 1 de cada 16 mini cajas; no hay cartas R ni SR, toda carta es SSR o superior (Collector's Edge).
+Fun Moments Edition Series 1 — CR 12; la ranura superior aparece en 1 de cada 12 sobres (Collector's Edge).
+Los distribuidores advierten que el número de sobres por caja varía según el mercado: hay que guiarse por lo impreso en la caja y no por tablas online.
+
+8. LÍNEA JUGABLE: MY LITTLE PONY TRADING CARD GAME
+El My Little Pony Trading Card Game de Kayou es un juego de dos jugadores. Cada jugador elige un pony; los mazos iniciales están construidos alrededor de un pony de las Mane 6. Se juega con un mazo de 50 cartas más 15 cartas de escena (Scene deck) y gana quien lleva a su pony hasta el final de su historia de cuatro partes. Se vende como Friendships Begin (los seis mazos iniciales y su bono de sobres). No es lo mismo que la línea coleccionable Friendship Eternal: las cartas de Friendship Eternal no sirven para jugar al TCG, aunque las cajas se parezcan; hay que buscar la etiqueta Trading Card Game en la caja. Existe edición japonesa del juego (mlptcg-jp.com). Fuente: guía de Collector's Edge.
+
+9. LO QUE ESTE DOCUMENTO NO CUBRE
+No documenta precios de mercado, probabilidades por caja de las cajas chinas, tiras de impresión, versiones de primera tirada, ni qué cartas posee nadie. Si una pregunta pide alguno de esos datos (por ejemplo, «¿cuánto cuesta una carta SGR?»), la respuesta correcta es que este documento no lo documenta.
+
+10. FUENTES
+Guía colectora de referencia: My Little Pony - Full KAYOU Collector Guide (By Goda), Google Sheets; aporta las fechas, los totales y el desglose de rarezas por set: https://docs.google.com/spreadsheets/d/1R9wJUj_EZc6_jxGOBpH99QyYgUoUwDEzjeLQivIzqHg/
+Catálogo de sets Kayou de MLP de waifucards: https://waifucards.app/sets/mlp
+Web oficial de Kayou, ficha Moon Edition Series 1 (totales, niveles, formato y probabilidades): https://www.kayouofficial.com
+My Little Wiki, entrada Kayou Trading Cards (idiomas y estructura de códigos): http://mylittlewiki.org/wiki/Kayou_Trading_Cards
+Collector's Edge, guía de coleccionismo Kayou (ediciones internacionales, rarezas y TCG): https://collectorsedge.co.uk/pages/kayou-collectible-cards-guide
+MLP Merch, base de datos de rarezas Kayou: https://data.mlpmerch.com/kayou-cards/rarity/
+Comunidad: Reddit r/mylittlepony y r/KayouMLP.
+My Little Pony TCG japonés: https://www.mlptcg-jp.com/
