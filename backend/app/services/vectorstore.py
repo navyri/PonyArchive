@@ -271,7 +271,13 @@ def purgar_usuarios_huerfanos() -> None:
 
 def purgar_croma(ids: set[int]) -> None:
     """Quita de Chroma los puntos de usuario que ya no tienen cuenta."""
-    where = {"$and": [{"user_id": {"$ne": -1}}, {"user_id": {"$nin": sorted(ids)}}]}
+    # Sin usuarios con cuenta, cualquier punto con user_id que no sea el de la
+    # biblioteca compartida (-1) es huérfano; el `$nin` con lista vacía lo
+    # expresaría Chroma como error, así que se arma solo con lo que aplique.
+    conds = [{"user_id": {"$ne": -1}}]
+    if ids:
+        conds.append({"user_id": {"$nin": sorted(ids)}})
+    where = conds[0] if len(conds) == 1 else {"$and": conds}
     _get_chroma_collection().delete(where=where)
 
 

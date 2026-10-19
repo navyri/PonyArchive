@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Document
 from app.services.ingestion import index_document
-from app.services.vectorstore import catalogo_compartido
+from app.services.vectorstore import catalogo_compartido, purgar_usuarios_huerfanos
 
 # En contenedor, PONYARCHIVE_SEED_DIR apunta a /app/seed (fuera del volumen de datos:
 # docker-compose monta /app/data y enmascararía cualquier semilla ahí dentro).
