@@ -199,15 +199,6 @@ fuentes, el rechazo literal y la carga de documentos.
   <img src="https://capsule-render.vercel.app/api?type=rect&height=6&color=21182E"/>
 </p>
 
-## Regenerar PDF
-
-```bash
-# Presentación (Windows, Edge headless)
-"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --headless=new --print-to-pdf="docs\presentacion.pdf" --no-pdf-header-footer "file:///C:/ruta/al/repo/docs/presentacion.html"
-
-# Documento técnico: se genera desde docs/documento-tecnico.md (Markdown -> HTML -> PDF)
-```
-
 ## Licencias
 
 - **Código:** MIT (archivo `LICENSE`).
