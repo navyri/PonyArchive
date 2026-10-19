@@ -26,6 +26,9 @@ SUGGESTION = "Puedes subir documentos relacionados con ese tema y lo tendré en 
 # Bonus de similitud para los fragmentos de los documentos que subió el usuario
 BONUS_PROPIO = 0.05
 
+# Bonus léxico cuando la pregunta nombra literalmente el título del documento
+BONUS_MENCION = 0.10
+
 # Preguntas sobre el propio agente: respuesta fija, sin LLM ni recuperación
 META_PATTERNS = (
     r"qu[eé] (tipo de )?preguntas",
@@ -40,6 +43,42 @@ META_PATTERNS = (
 # Recuento de temporadas o canciones: preguntas estructuradas, resueltas con E7
 SEASON_COUNT_RE = re.compile(r"cu[aá]nt(as|os)[^.?!]{0,60}temporada", re.IGNORECASE)
 SONG_COUNT_RE = re.compile(r"cu[aá]nt(as|os)[^.?!]{0,40}cancion", re.IGNORECASE)
+
+# Recuento o enumeración: la mención de una entidad no convierte la consulta en factual
+COUNT_RE = re.compile(r"cu[aá]nt|enumera|numera|listado|lista|recuento", re.IGNORECASE)
+
+# Tipo de documento citado en la pregunta, para resolver catálogo sin depender del LLM
+_DOC_TYPE_WORDS = (
+    (re.compile(r"cancion|canciones|song", re.IGNORECASE), "cancion"),
+    (re.compile(r"episodio|episodios|capitulo|cap[ií]tulos", re.IGNORECASE), "episodio"),
+    (re.compile(r"personaje|personajes|poni|ponis", re.IGNORECASE), "personaje"),
+)
+
+# Para inferir el tipo desde la pregunta: pide listar, no describir (evita confundir
+# «¿cuáles son los personajes...?» con una enumeración de catálogo)
+_ENUM_TYPE_RE = re.compile(
+    r"(lista|listar|enumera|enum[eé]rame|muestra|m[ué]strame|dame|menciona|nombra)"
+    r"[^.?!]{0,40}(cancion|canciones|episodio|episodios|personaje|personajes)",
+    re.IGNORECASE,
+)
+
+
+def _doc_type_from_question(question: str) -> str | None:
+    """Infiere el tipo de documento que la pregunta pide listar (null si no lo nombra)."""
+    match = _ENUM_TYPE_RE.search(question)
+    if match:
+        texto = match.group(0)
+        for pattern, doc_type in _DOC_TYPE_WORDS:
+            if pattern.search(texto):
+                return doc_type
+    return None
+
+
+# Verbos de enumeración que piden una lista completa (sin «cuántos», que es recuento)
+_ENUM_VERBS_RE = re.compile(
+    r"\b(lista|listar|enumera|enum[eé]rame|muestra|m[ué]strame|dame|menciona|nombra|cu[aá]les)\b",
+    re.IGNORECASE,
+)
 
 AGENT_SCOPE = """Soy PonyArchive, el agente de esta biblioteca sobre My Little Pony: Friendship Is Magic
 (la generación G4, 2010-2019). Uso únicamente la documentación indexada, así que puedo
@@ -93,8 +132,9 @@ por el usuario y notas de contexto del curso).
 
 REGLAS INQUEBRANTABLES:
 1. Usa SOLO la información de los fragmentos [Documento N]. NO uses tu conocimiento previo.
-2. Si el contexto no contiene la respuesta, responde EXACTAMENTE:
-   "{refusal}" y termina con: {suggestion}
+2. Usa la frase de rechazo SOLO si ningún fragmento menciona a la persona, cosa o tema
+   de la pregunta: responde EXACTAMENTE "{refusal}" y termina con: {suggestion}
+   Si algún fragmento SÍ menciona ese asunto, NO rechaces: aplica la regla 7.
 3. Distingue siempre entre "Dato documentado:" (información literal de la fuente) e
    "Interpretación del documento:" (inferencia razonable a partir de ella). Si algo no
    aparece, di "No está documentado en la biblioteca" en lugar de rellenarlo.
@@ -103,10 +143,11 @@ REGLAS INQUEBRANTABLES:
 6. Responde en español, claro y breve, pero copia los nombres propios tal como
    aparecen en los fragmentos (p. ej. "Princess Celestia", no "Princesa Celestia"):
    así quien lea puede rastrearlos en la fuente.
-7. Si la pregunta es genérica sobre una persona o tema que SÍ aparece en el contexto
-   (p. ej. «¿qué pasa con X?», «cuéntame de X», «¿cómo está X?»), resume lo que está
-   documentado sobre esa persona o tema y aclara qué detalles no constan; no rechaces
-   solo porque la pregunta sea amplia.
+7. Si la pregunta trata de una persona o tema que SÍ aparece en el contexto —aunque
+   pida un detalle que no consta («¿cuál es el segundo nombre de X?») o una cifra que
+   los fragmentos no permiten calcular («¿cuántos episodios de X?»)—, resume lo que sí
+   está documentado sobre ese asunto y termina con «No está documentado en la biblioteca:
+   <lo que falta>». No rechaces por falta del dato puntual.
 {extra_rule}
 
 CONTEXTO DOCUMENTAL:
@@ -186,6 +227,31 @@ def _documented_title_in(question: str) -> str | None:
     )
 
 
+def _tokens_entidad(question: str, user_id: int | None = None) -> set[str]:
+    """Tokens (≥5) de títulos visibles que la pregunta nombra literalmente."""
+    q_tokens = {t for t in _norm_text(question).split() if len(t) >= 5}
+    if not q_tokens:
+        return set()
+    db = SessionLocal()
+    try:
+        query = db.query(Document.title).filter(Document.status == "indexado")
+        if user_id:
+            query = query.filter(
+                Document.user_id.is_(None) | (Document.user_id == user_id)
+            )
+        else:
+            query = query.filter(Document.user_id.is_(None))
+        titles = [t for (t,) in query.all()]
+    finally:
+        db.close()
+    return {
+        tok
+        for t in titles
+        for tok in _norm_text(t).split()
+        if len(tok) >= 5 and tok in q_tokens
+    }
+
+
 def _umbral_e1(settings, r: dict) -> float:
     """Umbral E1 aplicable al fragmento: la nota de contexto del curso usa el suyo."""
     if r.get("metadata", {}).get("doc_type") == "nota_curso":
@@ -233,6 +299,29 @@ def validate_intent(state: AgentState) -> dict:
     if SEASON_COUNT_RE.search(question) or SONG_COUNT_RE.search(question):
         intent = "catalogo"
 
+    # Cualquier recuento («cuántos episodios hay de Rarity») se resuelve con SQL:
+    # dejarlo a la recuperación semántica hace que el LLM cuente los fragmentos
+    # recuperados y anuncie un número que no es el del catálogo.
+    if re.search(r"cu[aá]nt(as|os)\b", question, re.IGNORECASE):
+        intent = "catalogo"
+
+    # Enumeración explícita del catálogo («lista las canciones», «enumera los
+    # episodios») y cualquier cita de temporada: se resuelven leyendo la BD (E7),
+    # nunca con recuperación semántica, que solo traería fragmentos sueltos.
+    if _ENUM_VERBS_RE.search(question) or SEASON_Q_RE.search(question):
+        intent = "catalogo"
+
+    # Mención literal de un nombre documentado: corrige intenciones erróneas del
+    # clasificador (meta/catalogo/fuera_de_dominio) salvo que pida recuentos, que
+    # siempre van al catálogo por SQL.
+    entidades = _tokens_entidad(question, state.get("user_id"))
+    if (
+        entidades
+        and intent in {"meta", "catalogo", "fuera_de_dominio", "ambigua"}
+        and not COUNT_RE.search(question)
+    ):
+        intent = "factual"
+
     # Un título documentado citado en la pregunta anula un "fuera_de_dominio"
     # erróneo del clasificador (bug del 2026-10-18) y acota la recuperación.
     titulo = data["titulo"]
@@ -241,13 +330,22 @@ def validate_intent(state: AgentState) -> dict:
         if citado:
             intent, titulo = "factual", citado
 
+    # La enumeración/catálogo necesita el tipo de documento; se infiere de la propia
+    # pregunta y manda sobre lo que proponga el clasificador (que puede equivocarse).
+    tipo = data["tipo_documento"]
+    if intent == "catalogo" and _ENUM_VERBS_RE.search(question):
+        tipo = _doc_type_from_question(question) or tipo
+    elif not tipo:
+        tipo = _doc_type_from_question(question) or tipo
+
     return {
         "intent": intent,
         "theme": data["theme"],
         "title_filter": titulo,
-        "doc_type_filter": data["tipo_documento"],
+        "doc_type_filter": tipo,
         "compare_items": data["elementos"] or [],
         "clarification": data["aclaracion"],
+        "mentions": sorted(entidades),
     }
 
 
@@ -258,6 +356,7 @@ def retrieve(state: AgentState) -> dict:
     notes: list[str] = []
     results: list[dict] = []
     propios: list[dict] = []
+    entidades = set(state.get("mentions") or [])
 
     def _search(q: str, **kwargs) -> list[dict]:
         # Por defecto solo se ven los documentos compartidos y los propios del
@@ -316,6 +415,38 @@ def retrieve(state: AgentState) -> dict:
                 "búsqueda general complementaria para no perder documentos."
             )
             results.extend(_search(question))
+        # Fuente citada por nombre: búsqueda acotada por título para que el documento
+        # que el usuario nombra entre aunque quede fuera del top-k de la general.
+        # Primero por el título completo de un documento indexado; si no, por token.
+        if entidades:
+            db = SessionLocal()
+            try:
+                visibles = (
+                    db.query(Document.title)
+                    .filter(Document.status == "indexado")
+                )
+                if user_id:
+                    visibles = visibles.filter(
+                        Document.user_id.is_(None) | (Document.user_id == user_id)
+                    )
+                else:
+                    visibles = visibles.filter(Document.user_id.is_(None))
+                mencion = next(
+                    (
+                        t
+                        for (t,) in visibles.all()
+                        if entidades
+                        & set(_norm_text(t).split())
+                    ),
+                    None,
+                )
+            finally:
+                db.close()
+            if mencion:
+                results.extend(_search(question, title_contains=mencion))
+            else:
+                for tok in sorted(entidades)[:3]:
+                    results.extend(_search(question, title_contains=tok))
         # Consulta temática: refuerzo filtrando por la etiqueta del tema
         # Refuerzo temático: trabaja sobre etiquetas del índice, no sobre suposiciones
         if state.get("theme"):
@@ -329,6 +460,20 @@ def retrieve(state: AgentState) -> dict:
 
     # Orden global por similitud y eliminación de duplicados entre búsquedas
     results = propios + results
+    # Mención literal del nombre del documento en la pregunta: bonus léxico y marca
+    # de cita que garantizan el paso de la fuente elegida por el usuario (E1 no aplica).
+    if entidades:
+        mencionados = 0
+        for r in results:
+            if entidades & set(_norm_text(r["metadata"].get("title", "")).split()):
+                r["score"] = min(1.0, r["score"] + BONUS_MENCION)
+                r["metadata"]["por_mencion"] = True
+                mencionados += 1
+        if mencionados:
+            notes.append(
+                f"{mencionados} fragmento(s) cuyo nombre se cita en la pregunta "
+                f"(bonus +{BONUS_MENCION}, sin umbral E1)."
+            )
     results.sort(key=lambda r: r["score"], reverse=True)
     seen_texts: set[str] = set()
     unique: list[dict] = []
@@ -338,15 +483,25 @@ def retrieve(state: AgentState) -> dict:
             unique.append(r)
     results = unique
 
-    # Auditoría: qué descarta el umbral (se conserva para explicar el rechazo)
-    accepted = [r for r in results if r["score"] >= _umbral_e1(settings, r)]
-    rejected = [r for r in results if r["score"] < _umbral_e1(settings, r)]
+    # Auditoría: qué descarta el umbral (se conserva para explicar el rechazo).
+    # Los fragmentos citados por nombre saltan E1: el usuario nombra la fuente.
+    def _cortado(r: dict) -> bool:
+        return r["score"] < _umbral_e1(settings, r) and not r["metadata"].get(
+            "por_mencion"
+        )
+
+    accepted = [r for r in results if not _cortado(r)]
+    rejected = [r for r in results if _cortado(r)]
     if rejected:
         notes.append(
             f"{len(rejected)} fragmento(s) descartados por similitud "
             f"bajo su umbral E1 (máximo {max(r['score'] for r in rejected):.3f})."
         )
     top = accepted[: settings.top_k]
+    # Las fuentes citadas por nombre no se recortan por el límite de fragmentos
+    cortadas = [r for r in accepted[settings.top_k :] if r["metadata"].get("por_mencion")]
+    if cortadas:
+        top.extend(cortadas[:3])
     if top:
         notes.append(f"Similitud máxima: {max(r['score'] for r in top):.3f}.")
 
@@ -401,7 +556,10 @@ def evaluate_sufficiency(state: AgentState) -> dict:
 
     mejor = max(retrieved, key=lambda r: r["score"])
     umbral_mejor = _umbral_e1(settings, mejor)
-    if mejor["score"] < umbral_mejor:
+    # Una fuente citada por nombre sostiene la consulta aunque su similitud quede
+    # baja: el usuario la nombra explícitamente en la pregunta.
+    citada = any(r["metadata"].get("por_mencion") for r in retrieved)
+    if mejor["score"] < umbral_mejor and not citada:
         return {
             "sufficient": False,
             "refusal_reason": f"La similitud máxima ({mejor['score']:.3f}) es inferior al umbral ({umbral_mejor}).",
@@ -437,8 +595,128 @@ def _season_breakdown() -> tuple[dict[int, int], int]:
     return counts, especiales
 
 
+def _episodes_mentioning(nombre: str) -> list[str]:
+    """Títulos de episodios cuyo texto menciona al personaje citado, sin LLM.
+
+    Cuenta cada episodio una vez agrupando por documento; la mención se busca en
+    cualquier fragmento del episodio, no solo en el título.
+    """
+    patron = re.compile(re.escape(nombre), re.IGNORECASE)
+    por_doc: dict[int, tuple[str, bool]] = {}
+    for item in fetch_documents("episodio"):
+        meta = item.get("metadata", {})
+        doc_id = meta.get("doc_id")
+        if doc_id is None:
+            continue
+        titulo = meta.get("title", "")
+        mencionado = patron.search(item.get("text") or "") is not None
+        if doc_id in por_doc:
+            prev_titulo, prev_menc = por_doc[doc_id]
+            por_doc[doc_id] = (prev_titulo, prev_menc or mencionado)
+        else:
+            por_doc[doc_id] = (titulo, mencionado)
+    return sorted(t for t, menc in por_doc.values() if menc)
+
+
+def _catalog_titles(doc_type: str) -> list[str]:
+    """Títulos indexados de un tipo de documento, leídos de la BD sin LLM."""
+    db = SessionLocal()
+    try:
+        return [
+            t
+            for (t,) in db.query(Document.title)
+            .filter(Document.status == "indexado", Document.doc_type == doc_type)
+            .order_by(Document.title)
+            .all()
+        ]
+    finally:
+        db.close()
+
+
+SEASON_IN_TEXT_RE = re.compile(r"Temporada (\d+), episodio", re.IGNORECASE)
+
+
+def _titles_by_season(season: int) -> list[str]:
+    """Títulos de episodios de una temporada, detectados en el texto sin LLM."""
+    seen: dict[int, tuple[str, int]] = {}
+    for item in fetch_documents("episodio"):
+        meta = item.get("metadata", {})
+        doc_id = meta.get("doc_id")
+        if doc_id is None or doc_id in seen:
+            continue
+        match = SEASON_IN_TEXT_RE.search(item.get("text") or "")
+        if match and int(match.group(1)) == season:
+            seen[doc_id] = (meta.get("title", ""), 0)
+    return sorted(t for t, _ in seen.values())
+
+
+# Temporada citada en la pregunta («episodios de la temporada 3»)
+SEASON_Q_RE = re.compile(r"temporada\s+(\d+)", re.IGNORECASE)
+
+
 def catalog_query(state: AgentState) -> dict:
-    """Estrategia E7: consultas estructuradas para contar o enumerar el catálogo."""
+    """Estrategia E7: consultas estructuradas para contar o enumerar el catálogo.
+
+    Enumerar («lista las canciones») devuelve los títulos reales de la BD; contar
+    («cuántas canciones») devuelve el resumen por tipo. Ni LLM ni invención.
+    """
+    question = state.get("question", "")
+    tipo = (state.get("doc_type_filter") or "").strip().lower()
+    notes: list[str] = []
+
+    # Enumeración solo si la pregunta pide listar Y se identificó el tipo de
+    # documento; sin tipo válido cae al recuento por tipo (sin inventar nada).
+    enum = bool(_ENUM_VERBS_RE.search(question)) and bool(tipo)
+    if enum:
+        season = SEASON_Q_RE.search(question)
+        if season and tipo == "episodio":
+            titulos = _titles_by_season(int(season.group(1)))
+            etiqueta = f"episodios de la temporada {season.group(1)}"
+        else:
+            # Solo se anuncia el filtro de temporada si realmente se aplica: los
+            # episodios tienen temporada en el texto, el resto de tipos no.
+            if season:
+                notes.append(
+                    "La temporada citada no consta indexada para este tipo de "
+                    "documento; se lista el tipo completo."
+                )
+            titulos = _catalog_titles(tipo)
+            etiqueta = f"elemento(s) de tipo '{tipo}'"
+        if titulos:
+            lines = [f"Dato documentado (consulta directa al catálogo, no por similitud):"]
+            lines.append(f"La biblioteca documenta {len(titulos)} {etiqueta}:")
+            lines.extend(f"- {t}" for t in titulos)
+            if notes:
+                lines.append("")
+                lines.extend(f"Nota: {n}" for n in notes)
+            return {"answer": "\n".join(lines), "sources": [], "refused": False}
+
+    # Recuento acotado a una entidad citada («cuántos episodios hay de Rarity»):
+    # se cuenta desde el texto documental, no desde los fragmentos recuperados.
+    titulo = (state.get("title_filter") or "").strip()
+    if titulo and re.search(r"cu[aá]nt(as|os)\b", question, re.IGNORECASE):
+        tipo_entidad = _doc_type_from_question(question) or "episodio"
+        mencionados = _episodes_mentioning(titulo) if tipo_entidad == "episodio" else []
+        if mencionados:
+            lines = [
+                "Dato documentado (consulta directa al catálogo, no por similitud):"
+            ]
+            lines.append(
+                f"La biblioteca documenta {len(mencionados)} episodio(s) donde "
+                f"se menciona a {titulo}:"
+            )
+            lines.extend(f"- {t}" for t in mencionados)
+            return {"answer": "\n".join(lines), "sources": [], "refused": False}
+        # Sin coincidencias: se advierte en vez de inventar un número.
+        lines = [
+            "Dato documentado (consulta directa al catálogo, no por similitud):"
+        ]
+        lines.append(
+            f"No se documenta ningún episodio que mencione a {titulo}; el "
+            f"catálogo no permite responder cuántos episodios hay de esa entidad."
+        )
+        return {"answer": "\n".join(lines), "sources": [], "refused": False}
+
     db = SessionLocal()
     try:
         rows = (
@@ -511,6 +789,16 @@ def generate(state: AgentState) -> dict:
         }
 
     refused = answer.startswith(REFUSAL_MESSAGE)
+    if refused and any(r["metadata"].get("por_mencion") for r in retrieved):
+        # La fuente citada está en el contexto: el rechazo no procede (reintento único)
+        answer = get_llm().invoke(
+            prompt
+            + "\n\nCORRECCIÓN: el usuario nombra en su pregunta un documento que SÍ está "
+            "en el contexto. No uses la frase de rechazo: responde con lo que ese documento "
+            "tiene documentado sobre el asunto y cierra con «No está documentado en la "
+            "biblioteca: <lo que falta>».\n"
+        ).content.strip()
+        refused = answer.startswith(REFUSAL_MESSAGE)
     return {"answer": answer, "sources": [] if refused else _source_list(retrieved), "refused": refused}
 
 

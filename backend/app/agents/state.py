@@ -30,6 +30,7 @@ class AgentState(TypedDict, total=False):
     doc_type_filter: str | None       # episodio | personaje | cancion | ficha_narrativa | upload
     compare_items: list[str]          # elementos a comparar (intent = comparacion)
     clarification: str | None         # pregunta de aclaración si la consulta es ambigua
+    mentions: list[str]               # tokens de títulos visibles citados en la pregunta
 
     # Nodo 2 — recuperación
     retrieved: list[Source]

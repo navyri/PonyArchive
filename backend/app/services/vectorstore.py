@@ -27,6 +27,9 @@ _qdrant_client = None
 _qdrant_listo: set[str] = set()
 _lock = Lock()
 
+# Minúsculas sin acentos para comparar títulos sin depender de la escritura exacta
+_ACENTOS = str.maketrans("áéíóúüñàèìòù", "aeiouunaeiou")
+
 
 def _is_qdrant() -> bool:
     return get_settings().vector_provider == "qdrant"
@@ -375,10 +378,12 @@ def search(
             out.append({"text": doc, "score": 1.0 - float(dist), "metadata": meta})
 
     if title_contains:
-        wanted = title_contains.strip().lower()
+        wanted = title_contains.strip().lower().translate(_ACENTOS)
         out = [
-            r for r in out if wanted in r["metadata"].get("title", "").lower()
-        ] or out
+            r
+            for r in out
+            if wanted in r["metadata"].get("title", "").lower().translate(_ACENTOS)
+        ]
 
     if theme:
         wanted_t = theme.strip().lower()
