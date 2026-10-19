@@ -65,11 +65,12 @@ _ENUM_TYPE_RE = re.compile(
 
 def _doc_type_from_question(question: str) -> str | None:
     """Infiere el tipo de documento que la pregunta pide listar (null si no lo nombra)."""
-    match = _ENUM_TYPE_RE.search(question)
-    if match:
-        texto = match.group(0)
+    for enum_re in (_ENUM_TYPE_RE, _ENUM_Q_RE):
+        match = enum_re.search(question)
+        if not match:
+            continue
         for pattern, doc_type in _DOC_TYPE_WORDS:
-            if pattern.search(texto):
+            if pattern.search(match.group(0)):
                 return doc_type
     return None
 
@@ -79,6 +80,26 @@ _ENUM_VERBS_RE = re.compile(
     r"\b(lista|listar|enumera|enum[eé]rame|muestra|m[ué]strame|dame|menciona|nombra|cu[aá]les)\b",
     re.IGNORECASE,
 )
+
+# Misma petición sin verbo de listado («¿qué canciones de MLP existen?»): el tipo del
+# catálogo va seguido de hay/existen/salen dentro de la misma frase. Se excluye «tiene»,
+# que señala una pregunta por una propiedad concreta, no por un listado.
+_ENUM_Q_RE = re.compile(
+    r"\bqu[eé]\s+(cancion(?:es)?|episodio(?:s)?|cap[ií]tulos?|personajes|ponis|ponies)"
+    r"[^.?!]{0,30}\b(hay|existe[n]?|salen|tienes)\b",
+    re.IGNORECASE,
+)
+
+
+def _es_enumeracion(question: str) -> bool:
+    """La pregunta pide listar el catálogo, en cualquiera de sus redacciones."""
+    if _ENUM_VERBS_RE.search(question):
+        return True
+    if not _ENUM_Q_RE.search(question):
+        return False
+    # Un capítulo concreto acota fuera de lo que el catálogo puede filtrar
+    # («¿qué personajes hay en el capítulo 47?» no es un listado del catálogo).
+    return re.search(r"cap[ií]tulo\s+\d", question, re.IGNORECASE) is None
 
 AGENT_SCOPE = """Soy PonyArchive, el agente de esta biblioteca sobre My Little Pony: Friendship Is Magic
 (la generación G4, 2010-2019). Uso únicamente la documentación indexada, así que puedo
@@ -305,10 +326,10 @@ def validate_intent(state: AgentState) -> dict:
     if re.search(r"cu[aá]nt(as|os)\b", question, re.IGNORECASE):
         intent = "catalogo"
 
-    # Enumeración explícita del catálogo («lista las canciones», «enumera los
-    # episodios») y cualquier cita de temporada: se resuelven leyendo la BD (E7),
-    # nunca con recuperación semántica, que solo traería fragmentos sueltos.
-    if _ENUM_VERBS_RE.search(question) or SEASON_Q_RE.search(question):
+    # Enumeración del catálogo en cualquier redacción («lista las canciones»,
+    # «¿qué canciones existen?») y cualquier cita de temporada: se resuelven leyendo
+    # la BD (E7), nunca con recuperación semántica, que solo traería fragmentos sueltos.
+    if _es_enumeracion(question) or SEASON_Q_RE.search(question):
         intent = "catalogo"
 
     # Mención literal de un nombre documentado: corrige intenciones erróneas del
@@ -333,7 +354,7 @@ def validate_intent(state: AgentState) -> dict:
     # La enumeración/catálogo necesita el tipo de documento; se infiere de la propia
     # pregunta y manda sobre lo que proponga el clasificador (que puede equivocarse).
     tipo = data["tipo_documento"]
-    if intent == "catalogo" and _ENUM_VERBS_RE.search(question):
+    if intent == "catalogo" and _es_enumeracion(question):
         tipo = _doc_type_from_question(question) or tipo
     elif not tipo:
         tipo = _doc_type_from_question(question) or tipo
@@ -666,7 +687,7 @@ def catalog_query(state: AgentState) -> dict:
 
     # Enumeración solo si la pregunta pide listar Y se identificó el tipo de
     # documento; sin tipo válido cae al recuento por tipo (sin inventar nada).
-    enum = bool(_ENUM_VERBS_RE.search(question)) and bool(tipo)
+    enum = _es_enumeracion(question) and bool(tipo)
     if enum:
         season = SEASON_Q_RE.search(question)
         if season and tipo == "episodio":
