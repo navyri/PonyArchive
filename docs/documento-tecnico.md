@@ -203,8 +203,11 @@ catalog_query --> persist ; reject --> persist ; persist --> END
 > **nota de contexto del curso** (`doc_type = nota_curso`), la pregunta se responde con esa fuente; si no
 > la hay, se aplica el rechazo literal. Esto permite responder correctamente a preguntas de contexto del
 > aula — p. ej. «¿A Duvan Gomez le pega la esposa?» → «Según la nota de contexto del curso, a Duvan Gomez
-> le pega la esposa y le deja morados, lleno de aporreones» (fuente citada, similitud 0,905) — sin
-> introducir conocimiento inventado.
+> le pega la esposa y le deja morados: lo golpea en casa, le deja aporreones y moretones, y recibe
+> maltrato de ella» (fuente citada, similitud 0,905 con e5 local y 0,598 con OpenAI) — sin introducir
+> conocimiento inventado. Variaciones
+> de la misma pregunta («¿le deja morados?», «¿por qué está morado?», «¿es víctima de maltrato?»)
+> responden igual en local y en nube.
 
 ## 8. Modelo local utilizado y base de datos vectorial
 
@@ -267,7 +270,7 @@ El enunciado exige **al menos 2**; se implementaron **7** (E1–E7):
 
 | ID | Estrategia | Descripción y ubicación |
 |---|---|---|
-| **E1** | Umbral de similitud | Solo se aceptan fragmentos con similitud ≥ 0,62 (`SIMILARITY_THRESHOLD`); los descartados se registran en las notas de recuperación |
+| **E1** | Umbral de similitud | Solo se aceptan fragmentos por encima del umbral calibrado por espacio de embeddings (`SIMILARITY_THRESHOLD`: 0,62 con e5 local, 0,50 con OpenAI; la nota de contexto del curso, documento corto y de confianza del aula, tiene umbral propio 0,45 en nube); los descartados se registran en las notas de recuperación |
 | **E2** | Nodo de suficiencia | `evaluate_sufficiency`: antes de generar, decide con reglas explícitas si hay evidencia; sin ella, no se invoca al LLM y se rechaza |
 | **E3** | Prompt restringido | `generate` ordena responder solo con el contexto recuperado, citar con `[n]` y no completar con conocimiento previo |
 | **E4** | Rechazo literal | Mensaje fijo exacto: «No tengo suficiente información en mi base de conocimiento para responder esa pregunta.» (casos T04/T05) |

@@ -69,8 +69,9 @@
 4. ~~Desplegar → **https://pony-archive.vercel.app**~~ ✓
 5. ~~`frontend/vercel.json` con rewrite SPA (`/(.*) → /index.html`): con
    `BrowserRouter`, las rutas directas (`/login`) devolvían 404~~ ✓
-6. `CORS_ORIGINS=https://pony-archive.vercel.app` en Render → Environment →
-   Save (redespliegue automático).
+6. ~~`CORS_ORIGINS=https://pony-archive.vercel.app` en Render → Environment →
+   Save (redespliegue automático)~~ ✓ (verificado: `Access-Control-Allow-Origin`
+   correcto y preflight OPTIONS 200 en la E2E del navegador)
 
 ### 3. Verificación end-to-end en nube
 
