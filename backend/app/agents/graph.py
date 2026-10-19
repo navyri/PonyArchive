@@ -994,14 +994,18 @@ def generate(state: AgentState) -> dict:
         }
 
     refused = answer.startswith(REFUSAL_MESSAGE)
-    if refused and any(r["metadata"].get("por_mencion") for r in retrieved):
-        # La fuente citada está en el contexto: el rechazo no procede (reintento único)
+    mencion = next(
+        (r for r in retrieved if r["metadata"].get("por_mencion")), None
+    )
+    if refused and mencion:
+        # La fuente citada está en el contexto: el rechazo no procede (reintento).
         answer = get_llm().invoke(
             prompt
-            + "\n\nCORRECCIÓN: el usuario nombra en su pregunta un documento que SÍ está "
-            "en el contexto. No uses la frase de rechazo: responde con lo que ese documento "
-            "tiene documentado sobre el asunto y cierra con «No está documentado en la "
-            "biblioteca: <lo que falta>».\n"
+            + "\n\nCORRECCIÓN OBLIGATORIA: el usuario nombra en su pregunta un documento "
+            "que SÍ está en el contexto. PROHIBIDO empezar con la frase de rechazo. "
+            "Escribe «Dato documentado:» con lo que ese documento tiene sobre el asunto "
+            "(aunque no conteste el dato puntual) y termina con «No está documentado en "
+            "la biblioteca: <el dato puntual preguntado>».\n"
         ).content.strip()
         refused = answer.startswith(REFUSAL_MESSAGE)
     if refused and _context_toca_el_asunto(state["question"], retrieved):
@@ -1010,14 +1014,26 @@ def generate(state: AgentState) -> dict:
         # documentado; se aplica la regla 7 (reintento único).
         answer = get_llm().invoke(
             prompt
-            + "\n\nCORRECCIÓN: el contexto SÍ nombra el asunto de la pregunta (revisa "
-            "cada fragmento completo, sinopsis y fichas incluidas). No uses la frase de "
-            "rechazo: resume con «Dato documentado:» lo que los fragmentos dicen sobre "
-            "ese asunto y cierra con «No está documentado en la biblioteca: <lo que "
-            "falta>». Si el dato puntual no aparece, márcalo con esa frase; no rechaces "
-            "de plano.\n"
+            + "\n\nCORRECCIÓN OBLIGATORIA: el contexto SÍ nombra el asunto de la pregunta "
+            "(revisa cada fragmento completo, sinopsis y fichas incluidas). PROHIBIDO "
+            "empezar con la frase de rechazo: resume con «Dato documentado:» lo que los "
+            "fragmentos dicen sobre ese asunto y cierra con «No está documentado en la "
+            "biblioteca: <lo que falta>». Si el dato puntual no aparece, márcalo con esa "
+            "frase; no rechaces de plano.\n"
         ).content.strip()
         refused = answer.startswith(REFUSAL_MESSAGE)
+    if refused and mencion:
+        # Último recurso determinista: el usuario nombró un documento que está en el
+        # contexto y el modelo insiste en rechazar. Se aplica la regla 7 a mano para
+        # no perder lo documentado (T04/T05 no nombran ningún documento, no llegan
+        # a esta rama y siguen rechazando).
+        fragmento = " ".join((mencion["text"] or "").split())[:500]
+        answer = (
+            f"Dato documentado (del documento citado en tu pregunta): {fragmento}…\n\n"
+            "No está documentado en la biblioteca: el dato puntual que se pregunta; "
+            "lo demás sí está respaldado por el documento citado."
+        )
+        refused = False
     return {"answer": answer, "sources": [] if refused else _source_list(retrieved), "refused": refused}
 
 
