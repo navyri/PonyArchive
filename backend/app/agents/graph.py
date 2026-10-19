@@ -58,7 +58,7 @@ _DOC_TYPE_WORDS = (
 # «¿cuáles son los personajes...?» con una enumeración de catálogo)
 _ENUM_TYPE_RE = re.compile(
     r"(lista|listar|enumera|enum[eé]rame|muestra|m[ué]strame|dame|menciona|nombra)"
-    r"[^.?!]{0,40}(cancion|canciones|episodio|episodios|personaje|personajes)",
+    r"[^.?!]{0,40}(cancion|canciones|episodio|episodios|cap[ií]tulos?|personaje|personajes)",
     re.IGNORECASE,
 )
 
@@ -155,7 +155,12 @@ REGLAS INQUEBRANTABLES:
 1. Usa SOLO la información de los fragmentos [Documento N]. NO uses tu conocimiento previo.
 2. Usa la frase de rechazo SOLO si ningún fragmento menciona a la persona, cosa o tema
    de la pregunta: responde EXACTAMENTE "{refusal}" y termina con: {suggestion}
-   Si algún fragmento SÍ menciona ese asunto, NO rechaces: aplica la regla 7.
+   Antes de rechazar, revisa TODOS los fragmentos completos —sinopsis, fichas y
+   diálogos incluidos—. Si el asunto aparece en alguno, NO rechaces: aplica la regla 7,
+   aunque los fragmentos no contesten la pregunta palabra por palabra. En preguntas
+   generales de la serie («¿de qué trata la serie?», «resume de qué va MLP»), cualquier
+   episodio, ficha o personaje documentado es material válido para resumir lo que la
+   biblioteca dice del tema: responde con eso en lugar de rechazar.
 3. Distingue siempre entre "Dato documentado:" (información literal de la fuente) e
    "Interpretación del documento:" (inferencia razonable a partir de ella). Si algo no
    aparece, di "No está documentado en la biblioteca" en lugar de rellenarlo.
@@ -424,6 +429,13 @@ def retrieve(state: AgentState) -> dict:
             title_contains=state.get("title_filter"),
         )
         results.extend(con_filtros)
+        # Dominio anclado: sin el ancla, preguntas generales («¿de qué trata la
+        # serie?») devolvían episodios al azar con similitudes altas (efecto hub)
+        # y el modelo terminaba negando; el ancla sube la sinopsis del piloto y
+        # las fichas narrativas al top-k.
+        results.extend(
+            _search(f"My Little Pony: Friendship Is Magic. {question}")
+        )
         # Los filtros que extrae el modelo pueden ser demasiado estrechos (p. ej.
         # tipo "personaje" excluye un documento subido por el usuario, o una nota
         # de contexto del curso). La búsqueda general complementaria se hace SIEMPRE
@@ -518,11 +530,26 @@ def retrieve(state: AgentState) -> dict:
             f"{len(rejected)} fragmento(s) descartados por similitud "
             f"bajo su umbral E1 (máximo {max(r['score'] for r in rejected):.3f})."
         )
-    top = accepted[: settings.top_k]
-    # Las fuentes citadas por nombre no se recortan por el límite de fragmentos
-    cortadas = [r for r in accepted[settings.top_k :] if r["metadata"].get("por_mencion")]
-    if cortadas:
-        top.extend(cortadas[:3])
+    # Selección con diversidad: como máximo dos fragmentos por documento, para que
+    # el contexto cubra fuentes distintas en lugar de trozos repetidos de un episodio.
+    top: list[dict] = []
+    por_doc: dict = {}
+    for r in accepted:
+        if len(top) >= settings.top_k:
+            break
+        doc_id = r["metadata"].get("doc_id")
+        if por_doc.get(doc_id, 0) >= 2:
+            continue
+        por_doc[doc_id] = por_doc.get(doc_id, 0) + 1
+        top.append(r)
+    # Las fuentes citadas por nombre no se recortan: el usuario nombra la fuente.
+    extra = [
+        r
+        for r in accepted
+        if r["metadata"].get("por_mencion") and r not in top
+    ]
+    if extra:
+        top.extend(extra[:3])
     if top:
         notes.append(f"Similitud máxima: {max(r['score'] for r in top):.3f}.")
 
@@ -671,8 +698,55 @@ def _titles_by_season(season: int) -> list[str]:
     return sorted(t for t, _ in seen.values())
 
 
-# Temporada citada en la pregunta («episodios de la temporada 3»)
-SEASON_Q_RE = re.compile(r"temporada\s+(\d+)", re.IGNORECASE)
+def _episodes_by_season() -> tuple[dict[int, list[str]], list[str]]:
+    """Títulos de episodios agrupados por temporada y especiales, sin LLM.
+
+    La temporada se lee de la cabecera documental («Temporada N, episodio M»);
+    los especiales (películas y Equestria Girls) no llevan número de temporada.
+    """
+    docs: dict[int, dict] = {}
+    for item in fetch_documents("episodio"):
+        meta = item.get("metadata", {})
+        doc_id = meta.get("doc_id")
+        if doc_id is None:
+            continue
+        info = docs.setdefault(doc_id, {"title": meta.get("title", ""), "season": None})
+        if not info["title"] and meta.get("title"):
+            info["title"] = meta["title"]
+        if info["season"] is None:
+            match = SEASON_IN_TEXT_RE.search(item.get("text") or "")
+            if match:
+                info["season"] = int(match.group(1))
+    agrupados: dict[int, list[str]] = {}
+    especiales: list[str] = []
+    for info in docs.values():
+        if info["season"]:
+            agrupados.setdefault(info["season"], []).append(info["title"])
+        else:
+            especiales.append(info["title"])
+    return (
+        {temp: sorted(tits) for temp, tits in sorted(agrupados.items())},
+        sorted(especiales),
+    )
+
+
+# Temporada citada en la pregunta («episodios de la temporada 3», «temporada tres»)
+SEASON_Q_RE = re.compile(
+    r"temporada\s+(\d+|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve)",
+    re.IGNORECASE,
+)
+_SEASON_WORDS = {
+    "una": 1, "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5,
+    "seis": 6, "siete": 7, "ocho": 8, "nueve": 9,
+}
+
+
+def _season_number(match: re.Match | None) -> int | None:
+    """Número de temporada desde un coincidence de SEASON_Q_RE (dígito o palabra)."""
+    if not match:
+        return None
+    token = match.group(1).lower()
+    return int(token) if token.isdigit() else _SEASON_WORDS.get(token)
 
 
 def catalog_query(state: AgentState) -> dict:
@@ -685,37 +759,30 @@ def catalog_query(state: AgentState) -> dict:
     tipo = (state.get("doc_type_filter") or "").strip().lower()
     notes: list[str] = []
 
-    # Enumeración solo si la pregunta pide listar Y se identificó el tipo de
-    # documento; sin tipo válido cae al recuento por tipo (sin inventar nada).
-    enum = _es_enumeracion(question) and bool(tipo)
-    if enum:
-        season = SEASON_Q_RE.search(question)
-        if season and tipo == "episodio":
-            titulos = _titles_by_season(int(season.group(1)))
-            etiqueta = f"episodios de la temporada {season.group(1)}"
-        else:
-            # Solo se anuncia el filtro de temporada si realmente se aplica: los
-            # episodios tienen temporada en el texto, el resto de tipos no.
-            if season:
-                notes.append(
-                    "La temporada citada no consta indexada para este tipo de "
-                    "documento; se lista el tipo completo."
-                )
-            titulos = _catalog_titles(tipo)
-            etiqueta = f"elemento(s) de tipo '{tipo}'"
-        if titulos:
-            lines = [f"Dato documentado (consulta directa al catálogo, no por similitud):"]
-            lines.append(f"La biblioteca documenta {len(titulos)} {etiqueta}:")
-            lines.extend(f"- {t}" for t in titulos)
-            if notes:
-                lines.append("")
-                lines.extend(f"Nota: {n}" for n in notes)
-            return {"answer": "\n".join(lines), "sources": [], "refused": False}
+    season_m = SEASON_Q_RE.search(question)
+    season_n = _season_number(season_m)
+    por_temporada = (
+        re.search(r"por\s+temporadas?", question, re.IGNORECASE) is not None
+    )
+    es_conteo = re.search(r"cu[aá]nt(as|os)\b", question, re.IGNORECASE) is not None
+
+    # En esta biblioteca las temporadas organizan los capítulos: una cita de
+    # temporada sin tipo explícito («cuéntame de la temporada 3») se resuelve por
+    # episodios, salvo que la pregunta nombre otro tipo («canciones de la 2»).
+    if not tipo and (season_n or por_temporada):
+        tipo = next(
+            (dt for pat, dt in _DOC_TYPE_WORDS if pat.search(question)),
+            "episodio",
+        )
+
+    titulo = (state.get("title_filter") or "").strip()
+    # El clasificador puede confundir «temporada 3» con un título citado: no lo es.
+    if season_n and _norm_text(titulo).startswith("temporada"):
+        titulo = ""
 
     # Recuento acotado a una entidad citada («cuántos episodios hay de Rarity»):
     # se cuenta desde el texto documental, no desde los fragmentos recuperados.
-    titulo = (state.get("title_filter") or "").strip()
-    if titulo and re.search(r"cu[aá]nt(as|os)\b", question, re.IGNORECASE):
+    if titulo and es_conteo:
         tipo_entidad = _doc_type_from_question(question) or "episodio"
         mencionados = _episodes_mentioning(titulo) if tipo_entidad == "episodio" else []
         if mencionados:
@@ -738,6 +805,76 @@ def catalog_query(state: AgentState) -> dict:
         )
         return {"answer": "\n".join(lines), "sources": [], "refused": False}
 
+    # Recuento por temporada («cuántos capítulos tiene la temporada 3»): la cifra y
+    # el listado salen del texto documental, sin LLM ni invención.
+    if season_n and tipo == "episodio" and es_conteo:
+        titulos = _titles_by_season(season_n)
+        lines = ["Dato documentado (consulta directa al catálogo, no por similitud):"]
+        if titulos:
+            lines.append(f"La temporada {season_n} documenta {len(titulos)} capítulos:")
+            lines.extend(f"- {t}" for t in titulos)
+        else:
+            lines.append(
+                f"La temporada {season_n} no consta documentada en el catálogo de episodios."
+            )
+        return {"answer": "\n".join(lines), "sources": [], "refused": False}
+
+    # Listado agrupado por temporadas («lista los capítulos por temporada»): secciones
+    # por temporada en vez de una lista plana de todos los capítulos.
+    if por_temporada and not season_n and tipo == "episodio":
+        agrupados, especiales = _episodes_by_season()
+        if agrupados:
+            lines = ["Dato documentado (consulta directa al catálogo, no por similitud):"]
+            total_caps = 0
+            for temp, tits in agrupados.items():
+                total_caps += len(tits)
+                lines.append(f"Temporada {temp} ({len(tits)} capítulos):")
+                lines.extend(f"- {t}" for t in tits)
+                lines.append("")
+            if especiales:
+                lines.append(f"Especiales sin número de temporada ({len(especiales)}):")
+                lines.extend(f"- {t}" for t in especiales)
+                lines.append("")
+            lines.append(
+                f"Total: {total_caps} capítulos numerados en {len(agrupados)} temporadas."
+            )
+            return {"answer": "\n".join(lines), "sources": [], "refused": False}
+
+    # Enumeración solo si la pregunta pide listar Y se identificó el tipo de
+    # documento; sin tipo válido cae al recuento por tipo (sin inventar nada).
+    # Una cita de temporada fuerza el listado de ESE temporada aunque la redacción
+    # no traiga verbo de listado («¿qué capítulos tiene la temporada 5?»).
+    enum = (_es_enumeracion(question) or bool(season_n)) and bool(tipo)
+    if enum:
+        if season_n and tipo == "episodio":
+            titulos = _titles_by_season(season_n)
+            etiqueta = f"episodios de la temporada {season_n}"
+            if not titulos:
+                lines = [
+                    "Dato documentado (consulta directa al catálogo, no por similitud):",
+                    f"La temporada {season_n} no consta documentada en el catálogo "
+                    "de episodios.",
+                ]
+                return {"answer": "\n".join(lines), "sources": [], "refused": False}
+        else:
+            # Solo se anuncia el filtro de temporada si realmente se aplica: los
+            # episodios tienen temporada en el texto, el resto de tipos no.
+            if season_n:
+                notes.append(
+                    "La temporada citada no consta indexada para este tipo de "
+                    "documento; se lista el tipo completo."
+                )
+            titulos = _catalog_titles(tipo)
+            etiqueta = f"elemento(s) de tipo '{tipo}'"
+        if titulos:
+            lines = [f"Dato documentado (consulta directa al catálogo, no por similitud):"]
+            lines.append(f"La biblioteca documenta {len(titulos)} {etiqueta}:")
+            lines.extend(f"- {t}" for t in titulos)
+            if notes:
+                lines.append("")
+                lines.extend(f"Nota: {n}" for n in notes)
+            return {"answer": "\n".join(lines), "sources": [], "refused": False}
+
     db = SessionLocal()
     try:
         rows = (
@@ -755,34 +892,76 @@ def catalog_query(state: AgentState) -> dict:
 
     total = sum(c for _, c in rows)
     lines = ["Dato documentado (consulta directa al catálogo, no por similitud):"]
-    for doc_type, count in sorted(rows, key=lambda r: -r[1]):
-        lines.append(f"- {count} documento(s) de tipo '{doc_type}'.")
-    lines.append(f"Total indexado: {total} documentos.")
 
     # Desglose de episodios por temporada: se extrae del texto documental, sin LLM
+    linea_temporadas = None
     if any(dt == "episodio" for dt, _ in rows):
-        por_temporada, especiales = _season_breakdown()
-        if por_temporada:
+        conteos, especiales = _season_breakdown()
+        if conteos:
             detalle = ", ".join(
-                f"Temporada {t}: {c}" for t, c in sorted(por_temporada.items())
+                f"Temporada {t}: {c}" for t, c in sorted(conteos.items())
             )
-            line = (
+            linea_temporadas = (
                 f"My Little Pony: Friendship Is Magic está documentada en "
-                f"{len(por_temporada)} temporadas con {sum(por_temporada.values())} "
+                f"{len(conteos)} temporadas con {sum(conteos.values())} "
                 f"capítulos numerados — {detalle}."
             )
             if especiales:
-                line += (
+                linea_temporadas += (
                     f" Además hay {especiales} especiales (películas y Equestria Girls) "
                     f"sin número de temporada."
                 )
-            lines.append(line)
+
+    # Quien pregunta «cuántas temporadas» quiere ese desglose, no el volcado por tipo:
+    # el desglose se responde primero (el resto de líneas sigue disponibles detrás).
+    if linea_temporadas and SEASON_COUNT_RE.search(question):
+        lines.append(linea_temporadas)
+
+    for doc_type, count in sorted(rows, key=lambda r: -r[1]):
+        lines.append(f"- {count} documento(s) de tipo '{doc_type}'.")
+    lines.append(f"Total indexado: {total} documentos.")
+    if linea_temporadas and not SEASON_COUNT_RE.search(question):
+        lines.append(linea_temporadas)
     return {"answer": "\n".join(lines), "sources": [], "refused": False}
 
 
 def agent_info(state: AgentState) -> dict:
     """Respuesta fija sobre el alcance del agente (sin LLM ni recuperación)."""
     return {"answer": AGENT_SCOPE, "sources": [], "refused": False}
+
+
+# Términos frecuentes en las preguntas que no identifican el asunto por sí solos
+_ASUNTO_STOP = {
+    "quienes", "quien", "cuales", "cuanto", "cuantos", "cuantas", "donde",
+    "despues", "antes", "ahora", "tambien", "sobre", "entre", "durante",
+    "aparece", "aparecen", "existe", "existen", "puedes", "puede", "quiero",
+    "documento", "documentos", "biblioteca", "pregunta", "respuesta",
+}
+# Palabras propias del dominio: presentes en casi cualquier fragmento, no distinguen
+_ASUNTO_GENERICOS = {
+    "temporada", "temporadas", "episodio", "episodios", "personaje", "personajes",
+    "cancion", "canciones", "capitulo", "capitulos", "serie", "historia",
+}
+
+
+def _context_toca_el_asunto(question: str, retrieved: list[dict]) -> bool:
+    """¿Algún término propio de la pregunta aparece en el contexto recuperado?
+
+    Si el contexto nombra el asunto y el modelo aun así niega, se le da una segunda
+    oportunidad con la regla 7 (resumir lo documentado y marcar el hueco). Los
+    términos genéricos no cuentan: una pregunta sin evidencia real (T05: «capítulo
+    47 con un sombrero morado») no debe disparar el reintento.
+    """
+    if not retrieved:
+        return False
+    context = _norm_text(" ".join(r["text"] for r in retrieved))
+    return any(
+        len(tok) >= 6
+        and tok not in _ASUNTO_GENERICOS
+        and tok not in _ASUNTO_STOP
+        and tok in context
+        for tok in _norm_text(question).split()
+    )
 
 
 def generate(state: AgentState) -> dict:
@@ -818,6 +997,18 @@ def generate(state: AgentState) -> dict:
             "en el contexto. No uses la frase de rechazo: responde con lo que ese documento "
             "tiene documentado sobre el asunto y cierra con «No está documentado en la "
             "biblioteca: <lo que falta>».\n"
+        ).content.strip()
+        refused = answer.startswith(REFUSAL_MESSAGE)
+    if refused and _context_toca_el_asunto(state["question"], retrieved):
+        # El contexto sí nombra el asunto (p. ej. «los Elementos» en las sinopsis):
+        # el rechazo total pierde lo documentado; se aplica la regla 7 (reintento).
+        answer = get_llm().invoke(
+            prompt
+            + "\n\nCORRECCIÓN: el contexto SÍ nombra el asunto de la pregunta (revisa "
+            "cada fragmento completo, sinopsis y fichas incluidas). No uses la frase de "
+            "rechazo: resume con «Dato documentado:» lo que los fragmentos dicen sobre "
+            "ese asunto y cierra con «No está documentado en la biblioteca: <lo que "
+            "falta>».\n"
         ).content.strip()
         refused = answer.startswith(REFUSAL_MESSAGE)
     return {"answer": answer, "sources": [] if refused else _source_list(retrieved), "refused": refused}

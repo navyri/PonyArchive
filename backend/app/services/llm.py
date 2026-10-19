@@ -21,6 +21,7 @@ def _get_ollama():
         base_url=s.ollama_base_url,
         model=s.ollama_model,
         temperature=s.llm_temperature,
+        seed=42,           # fija la semilla: con temperature 0 la respuesta varía
         num_ctx=8192,
         # Con reasoning activo qwen3.5:4b devuelve la respuesta vacía.
         reasoning=False,
