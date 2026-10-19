@@ -17,6 +17,8 @@ from threading import Lock
 from uuid import NAMESPACE_URL, uuid5
 
 from app.config import get_settings
+from app.database import SessionLocal
+from app.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -240,6 +242,34 @@ def delete_document(doc_id: int) -> None:
         )
         return
     _get_chroma_collection().delete(where={"doc_id": doc_id})
+
+
+def purgar_usuarios_huerfanos() -> None:
+    """Elimina puntos cuyo user_id no existe en la BD: sobran tras un reinicio de SQLite."""
+    db = SessionLocal()
+    try:
+        ids = {uid for (uid,) in db.query(User.id).all()}
+    finally:
+        db.close()
+
+    if _is_qdrant():
+        from qdrant_client.models import FieldCondition, Filter, MatchAny
+
+        client = _get_qdrant()
+        settings = get_settings()
+        qfilter = Filter(
+            must_not=[FieldCondition(key="user_id", match=MatchAny(any=[-1, *sorted(ids)]))]
+        )
+        client.delete(collection_name=settings.qdrant_collection, points_selector=qfilter)
+        return
+
+    purgar_croma(ids)
+
+
+def purgar_croma(ids: set[int]) -> None:
+    """Quita de Chroma los puntos de usuario que ya no tienen cuenta."""
+    where = {"$and": [{"user_id": {"$ne": -1}}, {"user_id": {"$nin": sorted(ids)}}]}
+    _get_chroma_collection().delete(where=where)
 
 
 def _build_qdrant_filter(

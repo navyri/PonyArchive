@@ -44,6 +44,7 @@ def _hidratar_catalogo(db: Session) -> int:
     la nube ya contiene la biblioteca: se recuperan sus metadatos sin re-embeber.
     """
     creados = 0
+    purgar_usuarios_huerfanos()
     for fila in catalogo_compartido():
         if db.get(Document, fila["doc_id"]) is not None:
             continue

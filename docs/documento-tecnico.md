@@ -344,6 +344,11 @@ Detalle operativo del despliegue:
   reconstruye en cada arranque. Como el índice vectorial de la nube sí
   persiste, la siembra **hidrata el catálogo desde los payloads del índice**
   (segundos, sin re-embeber) y contiene fallos puntuales por documento.
+- Al hidratar con la base vacía se **purgan los fragmentos cuyo `user_id` ya no
+  tiene cuenta** en la base relacional. Sin esta limpieza, el reinicio de
+  SQLite reciclaría los IDs de usuario y un usuario nuevo podría heredar
+  documentos subidos por otro (aislamiento T10). El smoke borra además su
+  propio documento de prueba al terminar.
 - `/health` reporta el modelo realmente activo según el proveedor
   (`gpt-4o-mini` en nube, `qwen3.5:4b` en local).
 - Las pruebas de humo crean usuarios efímeros contra la instancia desplegada

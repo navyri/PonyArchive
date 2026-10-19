@@ -121,6 +121,7 @@ def main() -> None:
         headers=headers,
         timeout=120,
     )
+    doc_zecora = r.json().get("id") if r.status_code == 201 else None
     cargado = r.status_code == 201
     results.append(("carga de documento (K07/T07)", cargado, f"HTTP {r.status_code} {r.text[:150]}"))
 
@@ -192,6 +193,10 @@ def main() -> None:
         ("contexto del curso (T11)", ok,
          f"refused={body.get('refused')} | fuentes={fuentes} | {body.get('answer','')[:220]}")
     )
+
+    # Limpieza: el documento de prueba no debe quedar en el índice compartido
+    if doc_zecora:
+        httpx.delete(f"{BASE}/api/documents/{doc_zecora}", headers=headers, timeout=60)
 
     print("\n================ RESULTADOS ================")
     failed = 0
